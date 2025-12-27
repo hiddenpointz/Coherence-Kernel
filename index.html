@@ -3,172 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coherence Kernel | Stability Guardrail</title>
+    <title>Coherence Kernel | ICU Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .maintain-green { background-color: #10b981; box-shadow: 0 0 20px #10b981; }
         .alert-yellow { background-color: #f59e0b; box-shadow: 0 0 20px #f59e0b; }
         .trigger-red { background-color: #ef4444; box-shadow: 0 0 20px #ef4444; }
-        .verdict-glow { transition: all 0.7s ease-in-out; }
-        /* Custom scrollbar for the DoE table */
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .m-input { width: 100%; background: #000; color: #fff; padding: 4px; border-radius: 4px; border: 1px solid #334155; font-size: 11px; text-center; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 flex flex-col items-center">
+<body class="bg-slate-900 text-slate-100 p-4 font-sans">
 
-    <div class="max-w-md w-full space-y-6">
-        
-        <div class="text-center mb-2">
-            <h1 class="text-xl font-black tracking-tighter text-indigo-400">COHERENCE KERNEL</h1>
-            <p class="text-[10px] text-slate-500 uppercase tracking-widest">Stability Monitoring System</p>
+    <div class="max-w-md mx-auto space-y-4">
+        <div class="bg-slate-800 p-6 rounded-3xl border border-slate-700 text-center">
+            <div id="status-light" class="w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center bg-slate-950 transition-all duration-700">
+                <span id="verdict-label" class="text-[10px] font-bold">IDLE</span>
+                <span id="omega-value" class="text-sm font-mono font-black">0.000</span>
+            </div>
+            <h2 class="mt-4 text-xs font-black text-indigo-400 tracking-widest uppercase">Clinical Decision Guardrail</h2>
         </div>
 
-        <div class="bg-slate-800/50 p-8 rounded-3xl border border-slate-700 space-y-6 shadow-2xl">
-            <div id="status-light" class="verdict-glow w-28 h-28 mx-auto rounded-full border-4 border-slate-800 flex flex-col justify-center items-center bg-slate-900">
-                <span id="verdict-label" class="text-xs font-bold uppercase">IDLE</span>
-                <span id="omega-value" class="text-lg font-mono font-black text-white/50">0.000</span>
+        <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+            <div class="grid grid-cols-5 gap-2 mb-4">
+                <div><p class="text-[7px] text-slate-500 uppercase">Sys</p><input type="number" id="v0" value="120" class="m-input"></div>
+                <div><p class="text-[7px] text-slate-500 uppercase">Dia</p><input type="number" id="v1" value="80" class="m-input"></div>
+                <div><p class="text-[7px] text-slate-500 uppercase">Pulse</p><input type="number" id="v2" value="72" class="m-input"></div>
+                <div><p class="text-[7px] text-slate-500 uppercase">SpO2</p><input type="number" id="v3" value="98" class="m-input"></div>
+                <div><p class="text-[7px] text-slate-500 uppercase">Resp</p><input type="number" id="v4" value="16" class="m-input"></div>
             </div>
-
-            <button onclick="runStabilityCheck()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 transition-all">
-                Execute Stability Check
-            </button>
+            <button onclick="runTrial()" class="w-full py-3 bg-indigo-600 rounded-xl font-bold text-xs uppercase tracking-tighter shadow-lg active:scale-95">Process Hybrinear Trial</button>
         </div>
 
-        <div class="bg-slate-800/80 p-6 rounded-2xl border border-slate-700 shadow-2xl">
-            <h3 class="text-blue-400 font-bold text-center mb-4 text-sm tracking-tight">FACTORIAL STABILITY SIMULATOR</h3>
-
-            <div class="mb-4">
-                <label class="text-[10px] text-slate-500 uppercase font-bold">Factor A: System Segment</label>
-                <select id="factorA" class="w-full bg-slate-950 text-white p-2 mt-1 rounded border border-slate-700 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="1.0">🏥 Medical (High Risk)</option>
-                    <option value="0.7">⚙️ Industrial (Medium Risk)</option>
-                    <option value="0.5">📈 Trading (Volatile)</option>
-                </select>
-            </div>
-
-            <div class="mb-4">
-                <label class="text-[10px] text-slate-500 uppercase font-bold">Factor B: Manual Input Score (0.0-1.0)</label>
-                <input type="number" id="factorB" step="0.1" min="0" max="1" value="0.8" 
-                       class="w-full bg-slate-950 text-white p-2 mt-1 rounded border border-slate-700 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                <p class="text-[9px] text-slate-500 mt-1 italic">Mimics sensor data or consultant risk tables.</p>
-            </div>
-
-            <button onclick="runFactorialCheck()" class="w-full py-3 bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-bold text-sm transition-all shadow-lg active:scale-95">
-                RUN MATRIX ANALYSIS
-            </button>
-
-            <div id="factorialResult" class="mt-4 p-4 rounded-lg bg-slate-950 border border-dashed border-slate-700 hidden">
-                <div class="text-center">
-                    <span id="matrixVerdict" class="text-lg font-black tracking-widest italic">---</span>
-                    <div id="matrixOmega" class="text-[10px] font-mono text-slate-500 mt-1">Omega: 0.0000</div>
-                </div>
-            </div>
+        <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 h-40">
+            <canvas id="stabilityChart"></canvas>
         </div>
 
-        <div class="bg-slate-800/80 border border-slate-700 rounded-xl overflow-hidden shadow-2xl">
-            <div class="p-3 bg-slate-700/50 border-b border-slate-700">
-                <h4 class="text-[10px] font-bold text-blue-300 uppercase tracking-widest">Design of Experiments Log</h4>
-            </div>
-            <div class="max-h-48 overflow-y-auto">
-                <table class="w-full text-left text-[11px]">
-                    <thead class="bg-slate-950 text-slate-500 uppercase sticky top-0">
-                        <tr>
-                            <th class="p-2 border-b border-slate-800">Trial</th>
-                            <th class="p-2 border-b border-slate-800">Segment</th>
-                            <th class="p-2 border-b border-slate-800">Input</th>
-                            <th class="p-2 border-b border-slate-800">Verdict</th>
-                        </tr>
-                    </thead>
-                    <tbody id="doeLogBody" class="text-slate-300">
-                        <tr>
-                            <td colspan="4" class="p-6 text-center text-slate-600 italic">No trials recorded yet.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="bg-black/40 rounded-xl border border-slate-800 overflow-hidden">
+            <table class="w-full text-[10px] text-left">
+                <thead class="bg-slate-900 text-slate-500 uppercase">
+                    <tr><th class="p-2">Trial</th><th class="p-2">Omega</th><th class="p-2">Verdict</th></tr>
+                </thead>
+                <tbody id="logBody"></tbody>
+            </table>
         </div>
-
     </div>
 
     <script>
-        // --- LOGIC FOR ORIGINAL CARD ---
-        const UEDPKernel = {
-            apiEndpoint: "https://coherence-vault.vercel.app/api",
-            async fetchStabilityVerdict() {
-                try {
-                    const response = await fetch(this.apiEndpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ inputs: [Math.random()] })
-                    });
-                    const result = await response.json();
-                    let style = "maintain-green";
-                    if (result.verdict === "CRITICAL") style = "trigger-red";
-                    if (result.score < 0.55 && result.verdict !== "CRITICAL") style = "alert-yellow";
-                    return { verdict: result.verdict, omega: result.score, style: style };
-                } catch (e) {
-                    return { verdict: "OFFLINE", omega: "0.000", style: "trigger-red" };
-                }
-            }
-        };
+        let trials = [];
+        let scores = [];
+        const ctx = document.getElementById('stabilityChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: trials, datasets: [{ label: 'Stability Index', data: scores, borderColor: '#6366f1', tension: 0.4 }] },
+            options: { scales: { y: { min: 0, max: 1 } }, plugins: { legend: { display: false } } }
+        });
 
-        async function runStabilityCheck() {
-            const btn = event.target;
-            const originalText = btn.innerText;
-            btn.innerText = "Analyzing Stream...";
-            const result = await UEDPKernel.fetchStabilityVerdict();
+        async function runTrial() {
+            const vitals = Array.from({length: 10}, (_, i) => parseFloat(document.getElementById(`v${i}`)?.value || 0));
+            
+            // SECURITY: Call the Vault for the proprietary math
+            const resp = await fetch('https://coherence-vault.vercel.app/api', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ vitals: vitals })
+            });
+            const data = await resp.json();
+
+            // UI Update
             const light = document.getElementById('status-light');
-            light.className = `verdict-glow w-28 h-28 mx-auto rounded-full border-4 border-slate-800 flex flex-col justify-center items-center ${result.style}`;
-            document.getElementById('verdict-label').innerText = result.verdict;
-            document.getElementById('omega-value').innerText = result.omega;
-            btn.innerText = originalText;
-        }
+            const style = data.verdict === "CRITICAL" ? "trigger-red" : (data.verdict === "ALERT" ? "alert-yellow" : "maintain-green");
+            light.className = `w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center transition-all duration-700 ${style}`;
+            document.getElementById('verdict-label').innerText = data.verdict;
+            document.getElementById('omega-value').innerText = data.score;
 
-        // --- LOGIC FOR FACTORIAL SIMULATOR & DoE ---
-        let trialCount = 0;
+            // Chart & Log Update
+            trials.push("#" + (trials.length + 1));
+            scores.push(data.score);
+            chart.update();
 
-        function runFactorialCheck() {
-            trialCount++;
-            const segmentEl = document.getElementById('factorA');
-            // Extract just the name without the emoji for the table
-            const segmentName = segmentEl.options[segmentEl.selectedIndex].text.split(' ')[1];
-            const weight = parseFloat(segmentEl.value);
-            const input = parseFloat(document.getElementById('factorB').value);
-            
-            const finalScore = (weight * input).toFixed(4);
-            
-            let verdict = "";
-            let colorClass = "";
-
-            if (finalScore > 0.75) { 
-                verdict = "MAINTAIN"; colorClass = "text-emerald-400"; 
-            } else if (finalScore > 0.45) { 
-                verdict = "ALERT"; colorClass = "text-amber-400"; 
-            } else { 
-                verdict = "CRITICAL"; colorClass = "text-rose-500"; 
-            }
-
-            // Update Simulator Result Card
-            const resultDiv = document.getElementById('factorialResult');
-            resultDiv.classList.remove('hidden');
-            document.getElementById('matrixVerdict').innerText = verdict;
-            document.getElementById('matrixVerdict').className = `text-lg font-black tracking-widest ${colorClass}`;
-            document.getElementById('matrixOmega').innerText = `Omega: ${finalScore}`;
-
-            // Update DoE Table
-            const tableBody = document.getElementById('doeLogBody');
-            if (trialCount === 1) tableBody.innerHTML = ""; 
-
-            const newRow = `
-                <tr class="border-b border-slate-800 hover:bg-slate-900 transition-colors">
-                    <td class="p-2 text-indigo-400 font-mono">#${trialCount.toString().padStart(2, '0')}</td>
-                    <td class="p-2 font-medium">${segmentName}</td>
-                    <td class="p-2 text-slate-500">${input.toFixed(1)}</td>
-                    <td class="p-2 font-bold ${colorClass}">${verdict}</td>
-                </tr>
-            `;
-            tableBody.innerHTML = newRow + tableBody.innerHTML;
+            const row = `<tr class="border-b border-slate-800"><td class="p-2">#${trials.length}</td><td class="p-2 font-mono">${data.score}</td><td class="p-2 font-bold">${data.verdict}</td></tr>`;
+            document.getElementById('logBody').innerHTML = row + document.getElementById('logBody').innerHTML;
         }
     </script>
 </body>
