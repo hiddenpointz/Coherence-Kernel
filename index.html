@@ -1,23 +1,59 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coherence Kernel | UEDP Stability Guardrail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .maintain-green { background-color: #10b981; box-shadow: 0 0 20px #10b981; }
+        .alert-yellow { background-color: #f59e0b; box-shadow: 0 0 20px #f59e0b; }
+        .trigger-red { background-color: #ef4444; box-shadow: 0 0 20px #ef4444; }
+        .verdict-glow { transition: all 0.7s ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-6">
+
+    <div class="max-w-md w-full text-center space-y-8">
+        <header>
+            <h1 class="text-2xl font-black tracking-tighter uppercase">Coherence Kernel</h1>
+            <p class="text-slate-500 text-xs">UEDP Stability Guardrail System</p>
+        </header>
+
+        <div class="flex flex-col items-center justify-center space-y-6 bg-slate-800/50 p-10 rounded-3xl border border-slate-700">
+            <div id="status-light" class="verdict-glow w-32 h-32 rounded-full border-4 border-slate-800 flex flex-col justify-center items-center text-center p-4 bg-slate-900">
+                <span id="verdict-label" class="text-xs font-bold tracking-tighter text-white uppercase">IDLE</span>
+                <span id="omega-value" class="text-lg font-mono font-black text-white/50">0.000</span>
+            </div>
+
+            <button onclick="runStabilityCheck()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 transition-all">
+                Execute Stability Check
+            </button>
+        </div>
+    </div>
+
+    <script>
         const UEDPKernel = {
-            apiKey: "HP_SECURE_TOKEN_v1",
             apiEndpoint: "https://coherence-vault.vercel.app/api",
 
-            async fetchStabilityVerdict(agentData) {
+            async fetchStabilityVerdict() {
                 try {
                     const response = await fetch(this.apiEndpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ inputs: [Math.random()] })
                     });
+                    
+                    if (!response.ok) throw new Error("Vault Connection Failed");
                     const result = await response.json();
                     
-                    let colorClass = "maintain-green";
-                    if (result.verdict === "CRITICAL") colorClass = "trigger-red";
-                    if (result.score < 0.55 && result.verdict !== "CRITICAL") colorClass = "alert-yellow";
+                    let style = "maintain-green";
+                    if (result.verdict === "CRITICAL") style = "trigger-red";
+                    if (result.score < 0.55 && result.verdict !== "CRITICAL") style = "alert-yellow";
 
-                    return { verdict: result.verdict, omega: result.score, style: colorClass };
+                    return { verdict: result.verdict, omega: result.score, style: style };
                 } catch (e) {
+                    console.error(e);
                     return { verdict: "OFFLINE", omega: "0.000", style: "trigger-red" };
                 }
             }
@@ -26,14 +62,16 @@
         async function runStabilityCheck() {
             const btn = event.target;
             btn.innerText = "Analyzing Stream...";
-            try {
-                const result = await UEDPKernel.fetchStabilityVerdict({ stream_id: "test-001" });
-                document.getElementById('status-light').className = `verdict-glow w-32 h-32 rounded-full ${result.style}`;
-                document.getElementById('verdict-label').innerText = result.verdict;
-                document.getElementById('omega-value').innerText = result.omega;
-            } finally {
-                btn.innerText = "Execute Stability Check";
-            }
+            
+            const result = await UEDPKernel.fetchStabilityVerdict();
+            
+            const light = document.getElementById('status-light');
+            light.className = `verdict-glow w-32 h-32 rounded-full border-4 border-slate-800 flex flex-col justify-center items-center text-center p-4 ${result.style}`;
+            
+            document.getElementById('verdict-label').innerText = result.verdict;
+            document.getElementById('omega-value').innerText = result.omega;
+            
+            btn.innerText = "Execute Stability Check";
         }
     </script>
 </body>
