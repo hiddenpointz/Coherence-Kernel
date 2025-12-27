@@ -1,20 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICU Coherence Kernel</title>
+    <meta charset="UTF-8"><title>ICU Coherence Kernel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .maintain-green { background-color: #10b981; box-shadow: 0 0 20px #10b981; }
         .alert-yellow { background-color: #f59e0b; box-shadow: 0 0 20px #f59e0b; }
         .trigger-red { background-color: #ef4444; box-shadow: 0 0 20px #ef4444; }
-        .m-input { width: 100%; background: #000; color: #fff; padding: 4px; border-radius: 4px; border: 1px solid #334155; font-size: 11px; text-align: center; }
+        .m-input { width: 100%; background: #000; color: #fff; padding: 4px; border-radius: 4px; border: 1px solid #334155; font-size: 11px; text-align: center; font-family: monospace; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 p-4 flex flex-col items-center">
-
+<body class="bg-slate-900 text-slate-100 p-4 font-sans flex flex-col items-center">
     <div class="max-w-md w-full space-y-4">
         <div class="bg-slate-800 p-6 rounded-3xl border border-slate-700 text-center shadow-2xl">
             <div id="status-light" class="w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center bg-slate-950 transition-all duration-700">
@@ -37,25 +34,14 @@
                 <div><p class="text-[7px] text-center text-slate-500">LAC</p><input type="number" id="v8" value="1.2" class="m-input"></div>
                 <div><p class="text-[7px] text-center text-slate-500">WBC</p><input type="number" id="v9" value="7.5" class="m-input"></div>
             </div>
-            <button onclick="processTrial()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-xs uppercase shadow-lg active:scale-95 transition-all">
-                Process Hybrinear Trial
-            </button>
+            <button onclick="processTrial()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-xs uppercase shadow-lg active:scale-95 transition-all">Process Hybrinear Trial</button>
         </div>
 
         <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 h-40">
             <canvas id="stabilityChart"></canvas>
         </div>
 
-        <div class="bg-black/40 rounded-xl border border-slate-800 overflow-hidden shadow-inner">
-            <table class="w-full text-[10px] text-left">
-                <thead class="bg-slate-900 text-slate-500 uppercase">
-                    <tr><th class="p-2 border-b border-slate-800">Trial</th><th class="p-2 border-b border-slate-800">Omega</th><th class="p-2 border-b border-slate-800">Verdict</th></tr>
-                </thead>
-                <tbody id="logBody" class="text-slate-300">
-                    <tr><td colspan="3" class="p-4 text-center italic text-slate-600">Waiting for first trial...</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <div class="bg-black/40 rounded-xl border border-slate-800 overflow-hidden"><table class="w-full text-[10px]"><tbody id="logBody"></tbody></table></div>
     </div>
 
     <script>
@@ -64,36 +50,30 @@
         const chart = new Chart(ctx, {
             type: 'line',
             data: { labels: trials, datasets: [{ data: scores, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.1)', fill: true, tension: 0.4 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 1.2, grid: { color: '#1e293b' } }, x: { display: false } }, plugins: { legend: { display: false } } }
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 1.2 }, x: { display: false } }, plugins: { legend: { display: false } } }
         });
 
         async function processTrial() {
             const vitals = Array.from({length: 10}, (_, i) => parseFloat(document.getElementById(`v${i}`).value || 0));
             try {
-                const resp = await fetch('/api', {
+                // UPDATE THIS URL to your actual Vercel project link
+                const resp = await fetch('https://coherence-vault.vercel.app/api', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ vitals: vitals })
                 });
                 const data = await resp.json();
 
-                // Status Light Logic
                 const light = document.getElementById('status-light');
                 const style = data.verdict === "CRITICAL" ? "trigger-red" : (data.verdict === "ALERT" ? "alert-yellow" : "maintain-green");
                 light.className = `w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center transition-all duration-700 ${style}`;
                 document.getElementById('verdict-label').innerText = data.verdict;
                 document.getElementById('omega-value').innerText = data.score.toFixed(4);
 
-                // Chart and Log Update
                 trials.push("#" + (trials.length + 1)); scores.push(data.score); chart.update();
-                const logBody = document.getElementById('logBody');
-                if (trials.length === 1) logBody.innerHTML = "";
-                const color = data.verdict === 'CRITICAL' ? 'text-red-500' : (data.verdict === 'ALERT' ? 'text-yellow-500' : 'text-green-500');
-                const row = `<tr class="border-b border-slate-800"><td class="p-2 font-mono">#${trials.length.toString().padStart(2, '0')}</td><td class="p-2 font-mono">${data.score.toFixed(4)}</td><td class="p-2 font-bold ${color}">${data.verdict}</td></tr>`;
-                logBody.innerHTML = row + logBody.innerHTML;
-            } catch (e) {
-                alert("Vault Offline: Run 'vercel dev' in terminal.");
-            }
+                const row = `<tr class="border-b border-slate-800"><td class="p-2">Trial #${trials.length}</td><td class="p-2 font-mono">${data.score.toFixed(4)}</td><td class="p-2 font-bold">${data.verdict}</td></tr>`;
+                document.getElementById('logBody').innerHTML = row + document.getElementById('logBody').innerHTML;
+            } catch (e) { alert("Vault Connection Failed. Ensure Vercel deployment is active."); }
         }
     </script>
 </body>
