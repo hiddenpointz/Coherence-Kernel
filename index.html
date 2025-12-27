@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><title>ICU Coherence Kernel</title>
+    <meta charset="UTF-8">
+    <title>ICU Coherence Kernel | Secure Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         .maintain-green { background-color: #10b981; box-shadow: 0 0 20px #10b981; }
         .alert-yellow { background-color: #f59e0b; box-shadow: 0 0 20px #f59e0b; }
@@ -11,69 +13,120 @@
         .m-input { width: 100%; background: #000; color: #fff; padding: 4px; border-radius: 4px; border: 1px solid #334155; font-size: 11px; text-align: center; font-family: monospace; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 p-4 font-sans flex flex-col items-center">
+<body class="bg-slate-900 text-slate-100 p-4 font-sans flex flex-col items-center min-h-screen">
+
     <div class="max-w-md w-full space-y-4">
         <div class="bg-slate-800 p-6 rounded-3xl border border-slate-700 text-center shadow-2xl">
             <div id="status-light" class="w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center bg-slate-950 transition-all duration-700">
-                <span id="verdict-label" class="text-[10px] font-bold">IDLE</span>
+                <span id="verdict-label" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">IDLE</span>
                 <span id="omega-value" class="text-sm font-mono font-black text-white/50">0.0000</span>
             </div>
-            <p class="mt-3 text-[9px] font-black text-indigo-400 tracking-widest uppercase">Clinical Hybrinear Vault</p>
+            <p class="mt-3 text-[9px] font-black text-indigo-400 uppercase tracking-widest">Hybrinear Clinical Vault</p>
         </div>
 
         <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 shadow-xl">
             <div class="grid grid-cols-5 gap-2 mb-4">
-                <div><p class="text-[7px] text-center text-slate-500">SYS</p><input type="number" id="v0" value="120" class="m-input"></div>
-                <div><p class="text-[7px] text-center text-slate-500">DIA</p><input type="number" id="v1" value="80" class="m-input"></div>
-                <div><p class="text-[7px] text-center text-slate-500">PULSE</p><input type="number" id="v2" value="72" class="m-input"></div>
-                <div><p class="text-[7px] text-center text-slate-500">SpO2</p><input type="number" id="v3" value="98" class="m-input"></div>
-                <div><p class="text-[7px] text-center text-slate-500">RESP</p><input type="number" id="v4" value="16" class="m-input"></div>
-                <div><p class="text-[7px] text-center text-slate-500">TEMP</p><input type="number" id="v5" value="36.6" class="m-input"></div>
-                <div><p class="text-[7px] text-center text-slate-500">GLU</p><input type="number" id="v6" value="95" class="m-input"></div>
-                <div><p class="text-[7px] text-center text-slate-500">URINE</p><input type="number" id="v7" value="50" class="m-input"></div>
-                <div><p class="text-[7px] text-center text-slate-500">LAC</p><input type="number" id="v8" value="1.2" class="m-input"></div>
-                <div><p class="text-[7px] text-center text-slate-500">WBC</p><input type="number" id="v9" value="7.5" class="m-input"></div>
+                <div><p class="text-[7px] text-center text-slate-500 font-bold">SYS</p><input type="number" id="v0" value="120" class="m-input"></div>
+                <div><p class="text-[7px] text-center text-slate-500 font-bold">DIA</p><input type="number" id="v1" value="80" class="m-input"></div>
+                <div><p class="text-[7px] text-center text-slate-500 font-bold">PULSE</p><input type="number" id="v2" value="72" class="m-input"></div>
+                <div><p class="text-[7px] text-center text-slate-500 font-bold">SpO2</p><input type="number" id="v3" value="98" class="m-input"></div>
+                <div><p class="text-[7px] text-center text-slate-500 font-bold">RESP</p><input type="number" id="v4" value="16" class="m-input"></div>
+                <div><p class="text-[7px] text-center text-slate-500 font-bold">TEMP</p><input type="number" id="v5" value="36.6" class="m-input"></div>
+                <div><p class="text-[7px] text-center text-slate-500 font-bold">GLU</p><input type="number" id="v6" value="95" class="m-input"></div>
+                <div><p class="text-[7px] text-center text-slate-500 font-bold">URINE</p><input type="number" id="v7" value="50" class="m-input"></div>
+                <div><p class="text-[7px] text-center text-slate-500 font-bold">LAC</p><input type="number" id="v8" value="1.2" class="m-input"></div>
+                <div><p class="text-[7px] text-center text-slate-500 font-bold">WBC</p><input type="number" id="v9" value="7.5" class="m-input"></div>
             </div>
             <button onclick="processTrial()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-xs uppercase shadow-lg active:scale-95 transition-all">Process Hybrinear Trial</button>
         </div>
 
-        <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 h-40">
-            <canvas id="stabilityChart"></canvas>
-        </div>
+        <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 h-40"><canvas id="stabilityChart"></canvas></div>
 
-        <div class="bg-black/40 rounded-xl border border-slate-800 overflow-hidden"><table class="w-full text-[10px]"><tbody id="logBody"></tbody></table></div>
+        <div class="bg-black/40 rounded-xl border border-slate-800 overflow-hidden shadow-inner">
+            <div class="flex justify-between items-center bg-slate-900/50 p-2 border-b border-slate-800">
+                <p class="text-[8px] text-slate-500 font-black uppercase">Session Log</p>
+                <div class="flex gap-4">
+                    <button onclick="downloadPDF()" class="text-[8px] text-indigo-400 font-black uppercase hover:text-indigo-300">PDF</button>
+                    <button onclick="shareWhatsApp()" class="text-[8px] text-emerald-400 font-black uppercase hover:text-emerald-300">WhatsApp</button>
+                    <button onclick="clearLogs()" class="text-[8px] text-rose-500 font-black uppercase hover:text-rose-400">Clear</button>
+                </div>
+            </div>
+            <table class="w-full text-[10px] text-left">
+                <tbody id="logBody" class="text-slate-300">
+                    <tr><td colspan="3" class="p-4 text-center italic text-slate-600">Waiting for clinical data...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
+        let sessionData = [];
         let trials = []; let scores = [];
         const ctx = document.getElementById('stabilityChart').getContext('2d');
         const chart = new Chart(ctx, {
             type: 'line',
             data: { labels: trials, datasets: [{ data: scores, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.1)', fill: true, tension: 0.4 }] },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 1.2 }, x: { display: false } }, plugins: { legend: { display: false } } }
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 1.2, grid: { color: '#1e293b' } }, x: { display: false } }, plugins: { legend: { display: false } } }
         });
 
         async function processTrial() {
             const vitals = Array.from({length: 10}, (_, i) => parseFloat(document.getElementById(`v${i}`).value || 0));
             try {
-                // UPDATE THIS URL to your actual Vercel project link
-                const resp = await fetch('https://coherence-vault.vercel.app/api', {
+                const resp = await fetch('/api', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ vitals: vitals })
                 });
                 const data = await resp.json();
-
+                
+                sessionData.push({ ...data, vitals: [...vitals] });
+                
+                // UI Status Update
                 const light = document.getElementById('status-light');
                 const style = data.verdict === "CRITICAL" ? "trigger-red" : (data.verdict === "ALERT" ? "alert-yellow" : "maintain-green");
                 light.className = `w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center transition-all duration-700 ${style}`;
                 document.getElementById('verdict-label').innerText = data.verdict;
                 document.getElementById('omega-value').innerText = data.score.toFixed(4);
 
-                trials.push("#" + (trials.length + 1)); scores.push(data.score); chart.update();
-                const row = `<tr class="border-b border-slate-800"><td class="p-2">Trial #${trials.length}</td><td class="p-2 font-mono">${data.score.toFixed(4)}</td><td class="p-2 font-bold">${data.verdict}</td></tr>`;
-                document.getElementById('logBody').innerHTML = row + document.getElementById('logBody').innerHTML;
-            } catch (e) { alert("Vault Connection Failed. Ensure Vercel deployment is active."); }
+                // Chart & Log
+                trials.push("T" + trials.length); scores.push(data.score); chart.update();
+                
+                const logBody = document.getElementById('logBody');
+                if (trials.length === 1) logBody.innerHTML = "";
+                const rowClass = data.crossed ? "bg-rose-900/30 border-l-4 border-rose-500" : "border-b border-slate-800";
+                const row = `<tr class="${rowClass}"><td class="p-2 font-mono text-[9px]">${data.timestamp}</td><td class="p-2 font-mono">${data.score.toFixed(4)}</td><td class="p-2 font-bold ${data.crossed ? 'text-red-400':'text-slate-400'}">${data.verdict} ${data.crossed ? '⚠️':''}</td></tr>`;
+                logBody.innerHTML = row + logBody.innerHTML;
+            } catch (e) { alert("Vault Connection Error."); }
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(18); doc.text("Clinical Hybrinear Report", 20, 20);
+            doc.setFontSize(10); doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 30);
+            
+            let y = 50;
+            sessionData.forEach((d, i) => {
+                const line = `Trial #${i+1} | Time: ${d.timestamp} | Score: ${d.score} | Verdict: ${d.verdict}`;
+                doc.text(line, 20, y);
+                if (d.crossed) doc.setTextColor(255, 0, 0), doc.text("--- TIPPING POINT BREACHED ---", 20, y+5), doc.setTextColor(0, 0, 0), y+=5;
+                y += 10;
+            });
+            doc.save("ICU_Report.pdf");
+        }
+
+        function shareWhatsApp() {
+            const phone = prompt("Enter WhatsApp number with country code (e.g. 15551234567):");
+            if (!phone) return;
+            let msg = "Hybrinear Clinical Session Summary:%0A";
+            sessionData.forEach((d, i) => {
+                msg += `T${i+1} [${d.timestamp}] Score: ${d.score} - ${d.verdict}${d.crossed ? ' (TIPPING POINT)':''}%0A`;
+            });
+            window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
+        }
+
+        function clearLogs() {
+            if (confirm("Wipe session?")) { location.reload(); }
         }
     </script>
 </body>
