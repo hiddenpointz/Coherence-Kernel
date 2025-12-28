@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stasis Omega | Secure Vault</title>
+    <title>ICU Coherence Kernel | Secure Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -29,11 +29,6 @@
 
         <div class="bg-slate-800/80 p-6 rounded-2xl border border-slate-700 shadow-2xl">
             <h3 class="text-emerald-400 font-bold text-center mb-4 uppercase text-xs">Clinical Hybrinear Matrix</h3>
-           <div class="mb-4 p-3 bg-slate-900/80 rounded-xl border border-indigo-500/30">
-    <label class="text-[8px] text-indigo-400 uppercase font-black block mb-1 tracking-widest">Authorized License Phone</label>
-    <input type="text" id="userPhone" placeholder="Enter Registered Number" 
-           class="w-full bg-black text-emerald-400 text-xs font-mono p-2 rounded border border-slate-700 focus:border-emerald-500 outline-none">
-</div>
             <div class="grid grid-cols-2 gap-2 mb-4">
                 <div><label class="text-[8px] text-slate-500 uppercase">Systolic BP</label><input type="number" id="v0" value="120" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">Diastolic BP</label><input type="number" id="v1" value="80" class="m-input"></div>
@@ -72,30 +67,13 @@
             const gadgetTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
 
             try {
-    // 1. Get the phone number from an input field (we'll add this next)
-    const phoneNumber = document.getElementById('userPhone')?.value || "Unknown";
-
-    const resp = await fetch('https://coherence-vault.vercel.app/api', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // 2. Add 'phone' to the body here:
-        body: JSON.stringify({ 
-            phone: phoneNumber, 
-            vitals: vitals, 
-            gadgetTime: gadgetTime 
-        })
-    });
-
-    // 3. Handle the "Not Paid" error
-    if (resp.status === 403) {
-        const errorData = await resp.json();
-        alert("ACCESS DENIED: " + errorData.message);
-        window.location.href = "https://cmpay.vercel.app";
-        return;
-    }
-
-    const data = await resp.json();
-                
+                const resp = await fetch('https://coherence-vault.vercel.app/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vitals: vitals, gadgetTime: gadgetTime })
+                });
+                const data = await resp.json();
+               
                 trialCount++;
                 sessionData.push({ ...data, rawVitals: vitals });
 
@@ -133,38 +111,35 @@
             doc.save(`Report_${pID}.pdf`);
         }
 
-        function shareWhatsApp() {
-            // 1. Labels for the report
-            const reportLabels = ["SYS BP", "DIA BP", "PULSE", "SpO2", "RESP", "TEMP", "GLUCOSE", "URINE", "LACTATE", "WBC"];
-            
-            // 2. Access the latest entry
-            const last = sessionData[sessionData.length - 1];
-            if (!last) {
-                alert("No trial data found. Please Process Trial first.");
-                return;
-            }
+        function whatsapp() {
+    // Access the global sessionData array
+    const last = sessionData[sessionData.length - 1];
+    if (!last) {
+        alert("No trial data found. Please Process Trial first.");
+        return;
+    }
 
-            const phone = prompt("Enter number (with country code, e.g., 9198...):");
-            if (!phone) return;
+    const phone = prompt("Enter number (with country code, e.g., 9198...):");
+    if (!phone) return;
 
-            // 3. Build the clinical header
-            let msg = `*HYBRINEAR CLINICAL AUDIT*%0A`;
-            msg += `*Stability Score:* ${last.score.toFixed(4)}%0A`;
-            msg += `*Status:* ${last.verdict}%0A`;
-            msg += `--------------------%0A`;
-            msg += `*FULL PARAMETERS:*%0A`;
+    // Build the detailed message header
+    let msg = `*HYBRINEAR CLINICAL AUDIT*%0A`;
+    msg += `*Stability Score:* ${last.score.toFixed(4)}%0A`;
+    msg += `*Status:* ${last.verdict}%0A`;
+    msg += `--------------------%0A`;
+    msg += `*FULL PARAMETERS:*%0A`;
 
-            // 4. Loop through rawVitals (Must match what you saved in processTrial)
-            reportLabels.forEach((label, i) => {
-                msg += `- ${label}: ${last.rawVitals[i]}%0A`;
-            });
+    // Loop through all 10 entered vitals to include them in the report
+    last.raw.forEach((val, i) => {
+        msg += `- ${labels[i]}: ${val}%0A`;
+    });
 
-            msg += `--------------------%0A`;
-            msg += `*Time:* ${last.timestamp}`;
+    msg += `--------------------%0A`;
+    msg += `*Time:* ${last.timestamp}`;
 
-            // 5. Launch WhatsApp
-            window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
-        }
+    // Execute the WhatsApp link
+    window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
+}
 
         function clearLogs() { if(confirm("Clear All Trial Data?")) location.reload(); }
     </script>
