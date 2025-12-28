@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><title>ICU Coherence Kernel | Secure Vault</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICU Coherence Kernel | Secure Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -12,7 +14,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 p-4 flex flex-col items-center">
     <div class="max-w-md w-full space-y-4">
-        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-2xl">
             <label class="text-[8px] text-slate-500 uppercase font-bold">Patient / Bed ID</label>
             <input type="text" id="patientID" placeholder="Enter ID..." class="m-input text-emerald-400">
         </div>
@@ -54,10 +56,14 @@
 
     <script>
         let sessionData = [];
-        let tippingPointReached = false;
+        let trialCount = 0;
 
         async function processTrial() {
-            const vitals = Array.from({length: 10}, (_, i) => parseFloat(document.getElementById(`v${i}`).value || 0));
+            const defaults = [120, 80, 72, 98, 16, 36.6, 90, 50, 1.2, 7.5];
+            const vitals = Array.from({length: 10}, (_, i) => {
+                const val = document.getElementById(`v${i}`).value;
+                return val === "" ? defaults[i] : parseFloat(val);
+            });
             const gadgetTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
 
             try {
@@ -68,42 +74,38 @@
                 });
                 const data = await resp.json();
                 
-                // SAVE RAW VITALS FOR REPORTING
+                trialCount++;
                 sessionData.push({ ...data, rawVitals: vitals });
 
                 const light = document.getElementById('status-light');
-                light.className = `w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center ${data.crossed ? 'trigger-red' : 'maintain-green'}`;
+                light.className = `w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center ${data.score <= 0.368 ? 'trigger-red' : 'maintain-green'}`;
                 document.getElementById('verdict-label').innerText = data.verdict;
                 document.getElementById('omega-value').innerText = data.score.toFixed(4);
 
-                let marker = (data.crossed && !tippingPointReached) ? " <span class='text-red-500 font-black'>[TIPPING POINT]</span>" : "";
-                if (data.crossed) tippingPointReached = true;
+                let marker = "";
+                if (trialCount % 10 === 0) marker = ` <span class="text-orange-400 font-bold">[CHECKPOINT ${trialCount}]</span>`;
+                if (data.score <= 0.368) marker += ` <span class="text-red-500 font-black">[TIPPING POINT REACHED]</span>`;
 
-                const row = `<tr class="border-b border-slate-800 ${data.crossed ? 'bg-rose-900/20' : ''}">
-                    <td class="p-2 font-mono text-slate-500 text-[9px]">${data.timestamp}</td>
+                const row = `<tr class="border-b border-slate-800 ${data.score <= 0.368 ? 'bg-rose-900/20' : ''}">
+                    <td class="p-2 text-[9px] text-slate-500">${data.timestamp}</td>
                     <td class="p-2 font-mono text-[11px]">${data.score.toFixed(4)}</td>
-                    <td class="p-2 font-bold text-[11px]">${data.verdict}${marker}</td>
+                    <td class="p-2 font-bold text-[10px]">${data.verdict}${marker}</td>
                 </tr>`;
-                document.getElementById('logBody').innerHTML = row + document.getElementById('logBody').innerHTML;
+                document.getElementById('logBody').insertAdjacentHTML('afterbegin', row);
             } catch (e) { alert("Vault Connection Error."); }
         }
 
         function downloadPDF() {
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            const pID = document.getElementById('patientID').value || "Unnamed_Patient";
-            doc.setFontSize(16); doc.text(`ICU Clinical Report: ${pID}`, 15, 20);
+            const pID = document.getElementById('patientID').value || "Patient_Report";
+            doc.setFontSize(14); doc.text(`Patient ID: ${pID} | Hybrinear Audit`, 15, 20);
             doc.setFontSize(9); doc.setFont("courier", "bold");
-
             sessionData.forEach((d, i) => {
-                const yPos = 40 + (i * 18);
-                const v = d.rawVitals;
-                const color = d.verdict === "CRITICAL" ? [200, 0, 0] : [0, 0, 0];
-                doc.setTextColor(color[0], color[1], color[2]);
-                doc.text(`${d.timestamp} | Score: ${d.score.toFixed(4)} | Verdict: ${d.verdict}`, 15, yPos);
-                doc.setFont("courier", "normal");
-                doc.setTextColor(100, 100, 100);
-                // Print all 10 vitals in the PDF
-                doc.text(`   Vitals: ${v[0]}/${v[1]}/${v[2]}/${v[3]}/${v[4]}/${v[5]}/${v[6]}/${v[7]}/${v[8]}/${v[9]}`, 15, yPos + 6);
+                const y = 40 + (i * 18);
+                doc.setTextColor(d.score <= 0.368 ? 200 : 0, 0, 0);
+                doc.text(`${d.timestamp} | ${d.score.toFixed(4)} | ${d.verdict}`, 15, y);
+                doc.setTextColor(100); doc.setFont("courier", "normal");
+                doc.text(`Params: ${d.rawVitals.join('/')}`, 15, y + 6);
             });
             doc.save(`Report_${pID}.pdf`);
         }
@@ -113,13 +115,12 @@
             const pID = document.getElementById('patientID').value || "Unknown";
             let msg = `*Clinical Report: ${pID}*%0A--------------------%0A`;
             sessionData.forEach((d) => {
-                const v = d.rawVitals;
-                msg += `*Time:* ${d.timestamp}%0A*Score:* ${d.score.toFixed(4)} (${d.verdict})%0A*Params:* ${v.join('/')}%0A%0A`;
+                msg += `*Time:* ${d.timestamp}%0A*Score:* ${d.score.toFixed(4)} (${d.verdict})%0A*Vitals:* ${d.rawVitals.join('/')}%0A%0A`;
             });
             window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
         }
 
-        function clearLogs() { if(confirm("Clear?")) location.reload(); }
+        function clearLogs() { if(confirm("Clear All Trial Data?")) location.reload(); }
     </script>
 </body>
 </html>
