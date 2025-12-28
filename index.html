@@ -1,23 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hybrinear Health Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        .trigger-red { background: #ef4444; box-shadow: 0 0 25px #ef4444; }
-        .drift-orange { background: #f59e0b; box-shadow: 0 0 25px #f59e0b; }
-        .normal-green { background: #10b981; box-shadow: 0 0 25px #10b981; }
-        .m-input { width: 100%; background: #000; color: #fff; padding: 10px; border: 1px solid #334; font-size: 13px; font-family: monospace; border-radius: 6px; }
+        .trigger-red { background: #ef4444; box-shadow: 0 0 20px #ef4444; }
+        .drift-orange { background: #f59e0b; box-shadow: 0 0 20px #f59e0b; }
+        .normal-green { background: #10b981; box-shadow: 0 0 20px #10b981; }
+        .m-input { width: 100%; background: #000; color: #fff; padding: 12px; border: 1px solid #334; font-size: 14px; font-family: monospace; border-radius: 8px; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 p-4 font-sans">
+<body class="bg-slate-900 text-slate-100 p-4">
     <div class="max-w-md mx-auto space-y-4">
         <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-            <label class="text-[10px] text-slate-500 uppercase font-bold">Patient / Bed ID</label>
-            <input type="text" id="patientID" class="m-input text-emerald-400" placeholder="e.g. BED-001">
+            <label class="text-[10px] text-slate-500 uppercase font-bold">User / Patient ID</label>
+            <input type="text" id="patientID" class="m-input text-emerald-400" placeholder="e.g. HOME-01">
         </div>
 
         <div id="status-light" class="w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center bg-slate-800 transition-all duration-700">
@@ -25,9 +24,9 @@
             <span id="o-val" class="text-lg font-mono">0.0000</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 bg-slate-800 p-5 rounded-2xl shadow-2xl">
-            <input type="number" id="v0" placeholder="SYS BP (120)" class="m-input">
-            <input type="number" id="v1" placeholder="DIA BP (80)" class="m-input">
+        <div class="grid grid-cols-2 gap-3 bg-slate-800 p-5 rounded-2xl">
+            <input type="number" id="v0" placeholder="SYS (120)" class="m-input">
+            <input type="number" id="v1" placeholder="DIA (80)" class="m-input">
             <input type="number" id="v2" placeholder="Pulse (72)" class="m-input">
             <input type="number" id="v3" placeholder="SpO2 (98)" class="m-input">
             <input type="number" id="v4" placeholder="Resp (16)" class="m-input">
@@ -36,45 +35,45 @@
             <input type="number" id="v7" placeholder="Urine (50)" class="m-input">
             <input type="number" id="v8" placeholder="Lac (1.2)" class="m-input">
             <input type="number" id="v9" placeholder="WBC (7.5)" class="m-input">
-            <button onclick="process()" class="col-span-2 py-4 bg-indigo-600 rounded-xl font-black uppercase mt-2 shadow-lg hover:bg-indigo-500 transition-colors">Process Trial</button>
+            <button onclick="process()" class="col-span-2 py-4 bg-indigo-600 rounded-xl font-black uppercase shadow-lg">Process Trial</button>
         </div>
 
         <div class="bg-black/40 rounded-2xl p-4 border border-slate-800">
             <div class="flex justify-between mb-4">
-                <button onclick="generatePDF()" class="text-indigo-400 font-bold text-xs uppercase">PDF Report</button>
-                <button onclick="sendWhatsApp()" class="text-emerald-400 font-bold text-xs uppercase">WhatsApp</button>
-                <button onclick="location.reload()" class="text-rose-500 font-bold text-xs uppercase">Clear All</button>
+                <button onclick="pdf()" class="text-indigo-400 font-bold">PDF REPORT</button>
+                <button onclick="whatsapp()" class="text-emerald-400 font-bold">WHATSAPP</button>
+                <button onclick="location.reload()" class="text-rose-500 font-bold">CLEAR</button>
             </div>
-            <table class="w-full text-left text-[11px] font-mono">
-                <tbody id="log"></tbody>
-            </table>
+            <table class="w-full text-left text-[11px]"><tbody id="log"></tbody></table>
         </div>
     </div>
 
     <script>
-        let sessionData = [];
-        const labels = ["SYS", "DIA", "HR", "SpO2", "RR", "TEMP", "GLU", "URINE", "LAC", "WBC"];
+        let sessionData = []; let trialCount = 0;
         const defaults = [120, 80, 72, 98, 16, 36.6, 90, 50, 1.2, 7.5];
 
         async function process() {
-            const vitals = Array.from({length: 10}, (_, i) => {
+            const vitals = Array.from({length:10}, (_,i) => {
                 const val = document.getElementById(`v${i}`).value;
                 return val === "" ? defaults[i] : parseFloat(val);
             });
 
             try {
-                // IMPORTANT: CHANGE THE URL BELOW TO YOUR LIVE VERCEL URL
-                const response = await fetch('https://YOUR-VERCEL-APP-NAME.vercel.app/api', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ vitals }) 
+                // UPDATE THIS URL TO YOUR VERCEL URL
+                const resp = await fetch('https://coherence-vault.vercel.app/api', { 
+                    method:'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({vitals, gadgetTime: new Date().toLocaleTimeString('en-GB')}) 
                 });
+                const data = await resp.json();
                 
-                if (!response.ok) throw new Error();
-                const data = await response.json();
-                
-                // Store BOTH the math results and the raw entries for reporting
-                sessionData.push({ ...data, raw: vitals });
+                // Delta Warning
+                let delta = "";
+                if (sessionData.length > 0) {
+                    const diff = sessionData[sessionData.length-1].score - data.score;
+                    if (diff > 0.20) delta = ` <span class="text-rose-400">[DELTA ALERT]</span>`;
+                }
+
+                trialCount++; sessionData.push({...data, raw: vitals});
                 
                 const light = document.getElementById('status-light');
                 if (data.score < 0.368) light.className = "w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center trigger-red";
@@ -84,44 +83,24 @@
                 document.getElementById('v-lab').innerText = data.verdict;
                 document.getElementById('o-val').innerText = data.score.toFixed(4);
 
-                const row = `<tr class="border-b border-slate-800"><td class="py-2">${data.timestamp}</td><td class="font-bold">${data.score.toFixed(4)}</td><td class="text-right uppercase">${data.verdict}</td></tr>`;
+                let audit = trialCount % 10 === 0 ? ` <span class="text-orange-400 font-bold">[AUDIT]</span>` : "";
+                const row = `<tr class="border-b border-slate-800"><td class="py-3">${data.timestamp}</td><td class="font-mono">${data.score.toFixed(4)}</td><td class="text-right font-bold">${data.verdict}${audit}${delta}</td></tr>`;
                 document.getElementById('log').insertAdjacentHTML('afterbegin', row);
-            } catch (e) { 
-                alert("Vault Connection Failure. Please check that your Vercel URL is correct in the code."); 
-            }
+            } catch (e) { alert("Connection Error. Ensure Vercel URL is correct."); }
         }
 
-        function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const id = document.getElementById('patientID').value || "Unknown-Patient";
-            
-            doc.setFontSize(16); doc.text(`Clinical Math Audit: ${id}`, 10, 15);
-            doc.setFontSize(8); doc.setFont("courier", "bold");
-            
-            sessionData.forEach((entry, i) => {
-                const y = 30 + (i * 15);
-                const vitalStr = entry.raw.map((v, idx) => `${labels[idx]}:${v}`).join(' ');
-                doc.text(`${entry.timestamp} | SCORE: ${entry.score.toFixed(4)} | STATUS: ${entry.verdict}`, 10, y);
-                doc.setFont("courier", "normal");
-                doc.text(`> FULL ENTRY: ${vitalStr}`, 10, y + 5);
-                doc.setFont("courier", "bold");
-            });
-            doc.save(`Audit_${id}.pdf`);
+        function pdf() {
+            const { jsPDF } = window.jspdf; const doc = new jsPDF();
+            const pID = document.getElementById('patientID').value || "User";
+            doc.text(`Audit: ${pID}`, 15, 20);
+            sessionData.forEach((d, i) => doc.text(`${d.timestamp} | ${d.score.toFixed(4)} | ${d.verdict}`, 15, 40+(i*10)));
+            doc.save(`Audit_${pID}.pdf`);
         }
 
-        function sendWhatsApp() {
-            const id = document.getElementById('patientID').value || "Patient";
-            const last = sessionData[sessionData.length - 1];
-            if (!last) return;
-            
-            let msg = `*Hybrinear Audit: ${id}*%0A`;
-            msg += `*Time:* ${last.timestamp}%0A`;
-            msg += `*Stability Score:* ${last.score.toFixed(4)}%0A`;
-            msg += `*Clinical Verdict:* ${last.verdict}%0A%0A`;
-            msg += `*Full Parameter Details:*%0A`;
-            last.raw.forEach((val, i) => { msg += `- ${labels[i]}: ${val}%0A`; });
-            
+        function whatsapp() {
+            const pID = document.getElementById('patientID').value || "User";
+            const last = sessionData[sessionData.length-1];
+            let msg = `*Audit: ${pID}*%0A*Score:* ${last.score.toFixed(4)} (${last.verdict})`;
             window.open(`https://api.whatsapp.com/send?text=${msg}`);
         }
     </script>
