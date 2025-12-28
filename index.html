@@ -1,30 +1,42 @@
+<script>
+let tippingPointReached = false;
+
 async function processHybrinearTrial() {
+    // 1. Capture 10 vitals and gadget time
     const vitals = Array.from({length: 10}, (_, i) => parseFloat(document.getElementById(`v${i}`).value || 0));
     const gadgetTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
 
-    const response = await fetch('https://coherence-vault.vercel.app/api', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vitals: vitals, gadgetTime: gadgetTime })
-    });
+    try {
+        // 2. Send to Vercel Vault
+        const response = await fetch('https://coherence-vault.vercel.app/api', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vitals: vitals, gadgetTime: gadgetTime })
+        });
 
-    const data = await response.json();
-    
-    // UI Update logic
-    let marker = "";
-    if (data.crossed && !tippingPointReached) {
-        marker = " <span style='color:red; font-weight:bold;'>[TIPPING POINT]</span>";
-        tippingPointReached = true;
+        const data = await response.json();
+        
+        // 3. Point of No Return Logic
+        let marker = "";
+        if (data.crossed && !tippingPointReached) {
+            marker = " <span style='color:#ff4d4d; font-weight:bold;'>[TIPPING POINT]</span>";
+            tippingPointReached = true;
+        }
+
+        // 4. Update UI Components
+        const logEntry = `
+            <tr class="${data.crossed ? 'bg-red-900/20' : ''} border-b border-slate-700">
+                <td class="p-2 text-slate-400">${data.timestamp}</td>
+                <td class="p-2 font-mono font-bold">${data.score.toFixed(4)}</td>
+                <td class="p-2 font-black">${data.verdict}${marker}</td>
+            </tr>`;
+        
+        document.getElementById('logBody').insertAdjacentHTML('afterbegin', logEntry);
+        document.getElementById('mainVerdict').innerText = data.verdict;
+        document.getElementById('mainScore').innerText = data.score.toFixed(4);
+        
+    } catch (error) {
+        console.error("Vault Connection Error:", error);
     }
-
-    const logEntry = `
-        <tr class="${data.crossed ? 'bg-red-900/20' : ''} border-b border-slate-700">
-            <td class="p-2">${data.timestamp}</td>
-            <td class="p-2 font-mono">${data.score.toFixed(4)}</td>
-            <td class="p-2 font-bold">${data.verdict}${marker}</td>
-        </tr>`;
-    
-    document.getElementById('logBody').insertAdjacentHTML('afterbegin', logEntry);
-    document.getElementById('mainVerdict').innerText = data.verdict;
-    document.getElementById('mainScore').innerText = data.score.toFixed(4);
 }
+</script>
