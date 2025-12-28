@@ -97,36 +97,11 @@
             doc.save(`Audit_${pID}.pdf`);
         }
 
-        function shareWhatsApp() {
-    // 1. Check if there is data to send
-    const last = sessionData[sessionData.length - 1]; 
-    if (!last) {
-        alert("No trial data found. Please Process Trial first.");
-        return;
-    }
-
-    const phone = prompt("Enter number (with country code, e.g., 9198...):");
-    if (!phone) return;
-
-    // 2. Build the detailed Header
-    let msg = `*HYBRINEAR CLINICAL AUDIT*%0A`;
-    msg += `*Stability Score:* ${last.score.toFixed(4)}%0A`;
-    msg += `*Status:* ${last.verdict}%0A`;
-    msg += `--------------------%0A`;
-    msg += `*FULL PARAMETERS:*%0A`;
-
-    // 3. Loop through the raw values to include EVERYTHING
-    // Uses the labels: ["SYS", "DIA", "HR", "SpO2", "RR", "TEMP", "GLU", "URINE", "LAC", "WBC"]
-    last.raw.forEach((val, i) => {
-        msg += `- ${labels[i]}: ${val}%0A`;
-    });
-
-    msg += `--------------------%0A`;
-    msg += `*Time:* ${last.timestamp}`;
-
-    // 4. Execute the WhatsApp link
-    window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
-}
+        function whatsapp() {
+            const pID = document.getElementById('patientID').value || "User";
+            const last = sessionData[sessionData.length-1];
+            let msg = `*Audit: ${pID}*%0A*Score:* ${last.score.toFixed(4)} (${last.verdict})`;
+            window.open(`https://api.whatsapp.com/send?text=${msg}`);
         }
     </script>
 </body>
