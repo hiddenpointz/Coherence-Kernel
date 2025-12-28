@@ -12,45 +12,44 @@
         .m-input { width: 100%; background: #000; color: #fff; padding: 10px; border: 1px solid #334; font-size: 13px; font-family: monospace; border-radius: 6px; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 p-4 font-sans">
+<body class="bg-slate-900 text-slate-100 p-4">
     <div class="max-w-md mx-auto space-y-4">
         <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-            <label class="text-[10px] text-slate-500 uppercase font-bold">User / Patient ID</label>
-            <input type="text" id="patientID" class="m-input text-emerald-400" placeholder="e.g. HOME-USER-01">
+            <input type="text" id="patientID" class="m-input text-emerald-400" placeholder="PATIENT / BED ID">
         </div>
 
         <div id="status-light" class="w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center bg-slate-800 transition-all duration-700">
-            <span id="v-lab" class="text-[10px] font-bold uppercase">IDLE</span>
+            <span id="v-lab" class="text-[10px] font-bold">IDLE</span>
             <span id="o-val" class="text-lg font-mono">0.0000</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 bg-slate-800 p-5 rounded-2xl shadow-2xl">
-            <input type="number" id="v0" placeholder="SYS BP (120)" class="m-input">
-            <input type="number" id="v1" placeholder="DIA BP (80)" class="m-input">
-            <input type="number" id="v2" placeholder="Pulse (72)" class="m-input">
+        <div class="grid grid-cols-2 gap-3 bg-slate-800 p-5 rounded-2xl">
+            <input type="number" id="v0" placeholder="SYS (120)" class="m-input">
+            <input type="number" id="v1" placeholder="DIA (80)" class="m-input">
+            <input type="number" id="v2" placeholder="HR (72)" class="m-input">
             <input type="number" id="v3" placeholder="SpO2 (98)" class="m-input">
-            <input type="number" id="v4" placeholder="Resp (16)" class="m-input">
-            <input type="number" id="v5" placeholder="Temp (36.6)" class="m-input">
-            <input type="number" id="v6" placeholder="Glu (90)" class="m-input">
-            <input type="number" id="v7" placeholder="Urine (50)" class="m-input">
-            <input type="number" id="v8" placeholder="Lac (1.2)" class="m-input">
+            <input type="number" id="v4" placeholder="RR (16)" class="m-input">
+            <input type="number" id="v5" placeholder="TEMP (36.6)" class="m-input">
+            <input type="number" id="v6" placeholder="GLU (90)" class="m-input">
+            <input type="number" id="v7" placeholder="URINE (50)" class="m-input">
+            <input type="number" id="v8" placeholder="LAC (1.2)" class="m-input">
             <input type="number" id="v9" placeholder="WBC (7.5)" class="m-input">
-            <button onclick="process()" class="col-span-2 py-4 bg-indigo-600 rounded-xl font-black uppercase mt-2 shadow-lg">Process Trial</button>
+            <button onclick="process()" class="col-span-2 py-4 bg-indigo-600 rounded-xl font-bold uppercase">Process Trial</button>
         </div>
 
         <div class="bg-black/40 rounded-2xl p-4 border border-slate-800">
             <div class="flex justify-between mb-4">
-                <button onclick="pdf()" class="text-indigo-400 font-bold text-xs uppercase">PDF REPORT</button>
-                <button onclick="whatsapp()" class="text-emerald-400 font-bold text-xs uppercase">WHATSAPP</button>
-                <button onclick="location.reload()" class="text-rose-500 font-bold text-xs uppercase">CLEAR</button>
+                <button onclick="pdf()" class="text-indigo-400 text-xs font-bold">PDF REPORT</button>
+                <button onclick="whatsapp()" class="text-emerald-400 text-xs font-bold">WHATSAPP</button>
+                <button onclick="location.reload()" class="text-rose-500 text-xs font-bold">CLEAR</button>
             </div>
-            <table class="w-full text-left text-[11px]"><tbody id="log"></tbody></table>
+            <table class="w-full text-left text-[11px] font-mono"><tbody id="log"></tbody></table>
         </div>
     </div>
 
     <script>
-        let sessionData = []; let trialCount = 0;
-        const labels = ["BP", "DIA", "HR", "SpO2", "RR", "Temp", "Glu", "Ur", "Lac", "WBC"];
+        let sessionData = [];
+        const labels = ["SYS", "DIA", "HR", "SpO2", "RR", "TEMP", "GLU", "URINE", "LAC", "WBC"];
         const defaults = [120, 80, 72, 98, 16, 36.6, 90, 50, 1.2, 7.5];
 
         async function process() {
@@ -66,18 +65,6 @@
                 });
                 const data = await resp.json();
                 
-                let deltaAlert = "";
-                let rowColor = "border-slate-800";
-                
-                if (sessionData.length > 0) {
-                    const diff = sessionData[sessionData.length - 1].score - data.score;
-                    if (diff > 0.20) {
-                        deltaAlert = ` <span class="text-rose-400 font-black">[COLLAPSE]</span>`;
-                        rowColor = "bg-rose-950/30 border-rose-500";
-                    }
-                }
-
-                trialCount++; 
                 sessionData.push({...data, raw: vitals});
                 
                 const light = document.getElementById('status-light');
@@ -88,39 +75,31 @@
                 document.getElementById('v-lab').innerText = data.verdict;
                 document.getElementById('o-val').innerText = data.score.toFixed(4);
 
-                let audit = trialCount % 10 === 0 ? ` <span class="text-orange-400 font-bold">[AUDIT PT]</span>` : "";
-                const row = `<tr class="border-b ${rowColor}"><td class="py-3">${data.timestamp}</td><td class="font-mono font-bold">${data.score.toFixed(4)}</td><td class="text-right font-bold">${data.verdict}${audit}${deltaAlert}</td></tr>`;
+                const row = `<tr class="border-b border-slate-800"><td class="py-2">${data.timestamp}</td><td>${data.score.toFixed(4)}</td><td class="text-right">${data.verdict}</td></tr>`;
                 document.getElementById('log').insertAdjacentHTML('afterbegin', row);
-            } catch (e) { alert("Vault Connection Failure."); }
+            } catch (e) { alert("Vault Connection Failure. Check Vercel URL."); }
         }
 
         function pdf() {
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            const pID = document.getElementById('patientID').value || "User";
-            doc.setFontSize(14); doc.text(`Hybrinear Clinical Audit: ${pID}`, 10, 15);
-            doc.setFontSize(8); doc.setFont("courier", "bold");
-            
+            const pID = document.getElementById('patientID').value || "Bed-001";
+            doc.text(`Hybrinear Clinical Log: ${pID}`, 10, 10);
             sessionData.forEach((d, i) => {
-                const y = 30 + (i * 15);
-                const vLine = d.raw.map((v, idx) => `${labels[idx]}:${v}`).join(' ');
-                doc.text(`${d.timestamp} | Score: ${d.score.toFixed(4)} | Status: ${d.verdict}`, 10, y);
-                doc.setFont("courier", "normal");
-                doc.text(`> PARAMETERS: ${vLine}`, 10, y + 5);
-                doc.setFont("courier", "bold");
+                const y = 20 + (i * 12);
+                const vitalsText = d.raw.map((v, idx) => `${labels[idx]}:${v}`).join(' ');
+                doc.setFontSize(8);
+                doc.text(`${d.timestamp} | SCORE: ${d.score} | ${d.verdict}`, 10, y);
+                doc.text(`> ${vitalsText}`, 10, y + 5);
             });
-            doc.save(`Audit_${pID}.pdf`);
+            doc.save(`${pID}_Log.pdf`);
         }
 
         function whatsapp() {
-            const pID = document.getElementById('patientID').value || "User";
-            const d = sessionData[sessionData.length-1];
-            if (!d) return;
-            
-            let msg = `*Hybrinear Audit: ${pID}*%0A`;
-            msg += `*Time:* ${d.timestamp}%0A*Math Score:* ${d.score.toFixed(4)}%0A*Clinical Status:* ${d.verdict}%0A%0A`;
-            msg += `*Detailed Entry:*%0A`;
-            d.raw.forEach((v, i) => { msg += `- ${labels[i]}: ${v}%0A`; });
-            
+            const pID = document.getElementById('patientID').value || "Patient";
+            const last = sessionData[sessionData.length-1];
+            if (!last) return;
+            let msg = `*Hybrinear Report: ${pID}*%0A*Score:* ${last.score}%0A*Verdict:* ${last.verdict}%0A%0A*Vitals:*%0A`;
+            last.raw.forEach((v, i) => msg += `- ${labels[i]}: ${v}%0A`);
             window.open(`https://api.whatsapp.com/send?text=${msg}`);
         }
     </script>
