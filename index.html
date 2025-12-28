@@ -10,48 +10,47 @@
         .trigger-red { background: #ef4444; box-shadow: 0 0 20px #ef4444; }
         .drift-orange { background: #f59e0b; box-shadow: 0 0 20px #f59e0b; }
         .normal-green { background: #10b981; box-shadow: 0 0 20px #10b981; }
-        .m-input { width: 100%; background: #000; color: #fff; padding: 8px; border: 1px solid #334; font-size: 12px; font-family: monospace; border-radius: 4px; }
+        .m-input { width: 100%; background: #000; color: #fff; padding: 10px; border: 1px solid #334; font-size: 13px; font-family: monospace; border-radius: 6px; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 p-4 font-sans">
+<body class="bg-slate-900 text-slate-100 p-4">
     <div class="max-w-md mx-auto space-y-4">
-        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-xl">
             <label class="text-[10px] text-slate-500 uppercase font-bold">User / Patient ID</label>
-            <input type="text" id="patientID" class="m-input text-emerald-400" placeholder="e.g. HOME-01 or John Doe">
+            <input type="text" id="patientID" class="m-input text-emerald-400" placeholder="e.g. Home-User-01">
         </div>
 
-        <div id="status-light" class="w-28 h-28 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center bg-slate-800 transition-all duration-500">
+        <div id="status-light" class="w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center bg-slate-800 transition-all duration-700">
             <span id="v-lab" class="text-[10px] font-bold uppercase">Idle</span>
-            <span id="o-val" class="text-sm font-mono">0.0000</span>
+            <span id="o-val" class="text-lg font-mono">0.0000</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 bg-slate-800 p-4 rounded-xl shadow-2xl">
-            <div><label class="text-[9px] text-slate-400">SYS BP</label><input type="number" id="v0" placeholder="120" class="m-input"></div>
-            <div><label class="text-[9px] text-slate-400">DIA BP</label><input type="number" id="v1" placeholder="80" class="m-input"></div>
-            <div><label class="text-[9px] text-slate-400">PULSE</label><input type="number" id="v2" placeholder="72" class="m-input"></div>
-            <div><label class="text-[9px] text-slate-400">SPO2 %</label><input type="number" id="v3" placeholder="98" class="m-input"></div>
-            <div><label class="text-[9px] text-slate-400">RESP</label><input type="number" id="v4" placeholder="16" class="m-input"></div>
-            <div><label class="text-[9px] text-slate-400">TEMP °C</label><input type="number" id="v5" placeholder="36.6" class="m-input"></div>
-            <div><label class="text-[9px] text-slate-400">GLUCOSE</label><input type="number" id="v6" placeholder="90" class="m-input"></div>
-            <div><label class="text-[9px] text-slate-400">URINE</label><input type="number" id="v7" placeholder="50" class="m-input"></div>
-            <div><label class="text-[9px] text-slate-400">LACTATE</label><input type="number" id="v8" placeholder="1.2" class="m-input"></div>
-            <div><label class="text-[9px] text-slate-400">WBC</label><input type="number" id="v9" placeholder="7.5" class="m-input"></div>
-            <button onclick="process()" class="col-span-2 py-3 bg-indigo-600 rounded-lg font-black text-sm uppercase mt-2 shadow-lg hover:bg-indigo-500">Process Trial</button>
+        <div class="grid grid-cols-2 gap-3 bg-slate-800 p-5 rounded-2xl shadow-2xl">
+            <input type="number" id="v0" placeholder="SYS BP (120)" class="m-input">
+            <input type="number" id="v1" placeholder="DIA BP (80)" class="m-input">
+            <input type="number" id="v2" placeholder="Pulse (72)" class="m-input">
+            <input type="number" id="v3" placeholder="SpO2 (98)" class="m-input">
+            <input type="number" id="v4" placeholder="Resp (16)" class="m-input">
+            <input type="number" id="v5" placeholder="Temp (36.6)" class="m-input">
+            <input type="number" id="v6" placeholder="Glu (90)" class="m-input">
+            <input type="number" id="v7" placeholder="Urine (50)" class="m-input">
+            <input type="number" id="v8" placeholder="Lac (1.2)" class="m-input">
+            <input type="number" id="v9" placeholder="WBC (7.5)" class="m-input">
+            <button onclick="process()" class="col-span-2 py-4 bg-indigo-600 rounded-xl font-black text-sm uppercase mt-2 shadow-lg hover:bg-indigo-500">Process Trial</button>
         </div>
 
-        <div class="bg-black/40 rounded-xl p-3 border border-slate-800">
-            <div class="flex justify-between mb-3">
-                <button onclick="pdf()" class="text-[10px] text-indigo-400 font-bold uppercase">PDF Report</button>
-                <button onclick="whatsapp()" class="text-[10px] text-emerald-400 font-bold uppercase">WhatsApp</button>
-                <button onclick="location.reload()" class="text-[10px] text-rose-500 font-bold uppercase">Clear</button>
+        <div class="bg-black/40 rounded-2xl p-4 border border-slate-800">
+            <div class="flex justify-between mb-4">
+                <button onclick="pdf()" class="text-indigo-400 font-bold text-xs">PDF REPORT</button>
+                <button onclick="whatsapp()" class="text-emerald-400 font-bold text-xs">WHATSAPP</button>
+                <button onclick="location.reload()" class="text-rose-500 font-bold text-xs">CLEAR</button>
             </div>
-            <table class="w-full text-left text-[11px] border-collapse"><tbody id="log"></tbody></table>
+            <table class="w-full text-left text-[11px]"><tbody id="log"></tbody></table>
         </div>
     </div>
 
     <script>
-        let sessionData = []; 
-        let trialCount = 0;
+        let sessionData = []; let trialCount = 0;
         const defaults = [120, 80, 72, 98, 16, 36.6, 90, 50, 1.2, 7.5];
 
         async function process() {
@@ -68,52 +67,41 @@
                 });
                 const data = await resp.json();
                 
-                // Delta Warning Logic
                 let deltaMsg = "";
                 if (sessionData.length > 0) {
-                    const prevScore = sessionData[sessionData.length - 1].score;
-                    const diff = prevScore - data.score;
-                    if (diff > 0.20) deltaMsg = ` <span class="text-rose-400 font-black">[DELTA ALERT: -${diff.toFixed(2)}]</span>`;
+                    const diff = sessionData[sessionData.length - 1].score - data.score;
+                    if (diff > 0.20) deltaMsg = ` <span class="text-rose-400 font-bold">[DELTA ALERT: -${diff.toFixed(2)}]</span>`;
                 }
 
-                trialCount++; 
-                sessionData.push({...data, raw: vitals});
+                trialCount++; sessionData.push({...data, raw: vitals});
                 
                 const light = document.getElementById('status-light');
-                if (data.score < 0.368) light.className = "w-28 h-28 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center trigger-red";
-                else if (data.score <= 0.85) light.className = "w-28 h-28 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center drift-orange";
-                else light.className = "w-28 h-28 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center normal-green";
+                if (data.score < 0.368) light.className = "w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center trigger-red";
+                else if (data.score <= 0.85) light.className = "w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center drift-orange";
+                else light.className = "w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center normal-green";
 
                 document.getElementById('v-lab').innerText = data.verdict;
                 document.getElementById('o-val').innerText = data.score.toFixed(4);
 
-                let marker = trialCount % 10 === 0 ? ` <span class="text-orange-400">[AUDIT: ${data.score.toFixed(4)}]</span>` : "";
-                if (data.score <= 0.368) marker += ` <span class="text-white font-bold bg-red-600 px-1 rounded ml-1">TIPPING POINT</span>`;
+                let marker = trialCount % 10 === 0 ? ` <span class="text-orange-400 font-bold">[AUDIT PT]</span>` : "";
+                if (data.score <= 0.368) marker += ` <span class="text-white bg-red-600 px-1 rounded ml-1">TIPPING POINT</span>`;
 
-                const row = `<tr class="border-b border-slate-800"><td class="py-2">${data.timestamp}</td><td class="font-mono font-bold">${data.score.toFixed(4)}</td><td class="text-right font-bold">${data.verdict}${marker}${deltaMsg}</td></tr>`;
+                const row = `<tr class="border-b border-slate-800"><td class="py-3">${data.timestamp}</td><td class="font-mono font-bold">${data.score.toFixed(4)}</td><td class="text-right font-bold">${data.verdict}${marker}${deltaMsg}</td></tr>`;
                 document.getElementById('log').insertAdjacentHTML('afterbegin', row);
-            } catch (e) { alert("Vault Connection Failure"); }
+            } catch (e) { alert("Vault Connection Failure. Check Vercel deployment."); }
         }
 
         function pdf() {
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
             const pID = document.getElementById('patientID').value || "User_Report";
-            doc.setFontSize(16); doc.text(`Hybrinear Clinical Audit: ${pID}`, 15, 20);
-            doc.setFontSize(9); doc.setFont("courier", "bold");
-            sessionData.forEach((d, i) => {
-                const y = 40 + (i * 12);
-                doc.setTextColor(d.score <= 0.368 ? 200 : 0, 0, 0);
-                doc.text(`${d.timestamp} | ${d.score.toFixed(4)} | ${d.verdict} | Params: ${d.raw.join('/')}`, 15, y);
-            });
+            doc.text(`Hybrinear Audit: ${pID}`, 15, 20);
+            sessionData.forEach((d, i) => doc.text(`${d.timestamp} | ${d.score.toFixed(4)} | ${d.verdict}`, 15, 40+(i*10)));
             doc.save(`Audit_${pID}.pdf`);
         }
 
         function whatsapp() {
             const pID = document.getElementById('patientID').value || "User";
-            let msg = `*Hybrinear Health Audit: ${pID}*%0A`;
-            sessionData.slice(-3).forEach(d => {
-                msg += `%0A*Time:* ${d.timestamp}%0A*Score:* ${d.score.toFixed(4)} (${d.verdict})%0A`;
-            });
+            let msg = `*Hybrinear Health Audit: ${pID}*%0A*Latest Score:* ${sessionData[sessionData.length-1].score.toFixed(4)} (${sessionData[sessionData.length-1].verdict})`;
             window.open(`https://api.whatsapp.com/send?text=${msg}`);
         }
     </script>
