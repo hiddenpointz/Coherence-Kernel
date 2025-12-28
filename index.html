@@ -12,6 +12,11 @@
 </head>
 <body class="bg-slate-900 text-slate-100 p-4 flex flex-col items-center">
     <div class="max-w-md w-full space-y-4">
+        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+            <label class="text-[8px] text-slate-500 uppercase font-bold">Patient / Bed ID</label>
+            <input type="text" id="patientID" placeholder="Enter ID..." class="m-input text-emerald-400">
+        </div>
+
         <div class="bg-slate-800 p-6 rounded-3xl border border-slate-700 text-center shadow-2xl">
             <div id="status-light" class="w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center bg-slate-950 transition-all duration-700">
                 <span id="verdict-label" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">IDLE</span>
@@ -34,7 +39,7 @@
                 <div><label class="text-[8px] text-slate-500 uppercase">Lactate</label><input type="number" id="v8" value="1.2" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">WBC Count</label><input type="number" id="v9" value="7.5" class="m-input"></div>
             </div>
-            <button onclick="processTrial()" class="w-full py-3 bg-indigo-600 rounded-lg font-black text-xs hover:bg-indigo-500 shadow-lg">PROCESS HYBRINEAR TRIAL</button>
+            <button onclick="processTrial()" class="w-full py-3 bg-indigo-600 rounded-lg font-black text-xs hover:bg-indigo-500 shadow-lg uppercase">Process Hybrinear Trial</button>
         </div>
 
         <div class="bg-black/40 rounded-xl border border-slate-800 p-2">
@@ -43,7 +48,7 @@
                 <button onclick="shareWhatsApp()" class="text-[8px] text-emerald-400 font-black uppercase">WhatsApp</button>
                 <button onclick="clearLogs()" class="text-[8px] text-rose-500 font-black uppercase">Clear</button>
             </div>
-            <table class="w-full text-[10px] text-left"><tbody id="logBody"></tbody></table>
+            <table class="w-full text-[10px] text-left border-collapse"><tbody id="logBody"></tbody></table>
         </div>
     </div>
 
@@ -63,7 +68,7 @@
                 });
                 const data = await resp.json();
                 
-                // Save data + raw parameters for reporting
+                // SAVE RAW VITALS FOR REPORTING
                 sessionData.push({ ...data, rawVitals: vitals });
 
                 const light = document.getElementById('status-light');
@@ -75,9 +80,9 @@
                 if (data.crossed) tippingPointReached = true;
 
                 const row = `<tr class="border-b border-slate-800 ${data.crossed ? 'bg-rose-900/20' : ''}">
-                    <td class="p-2 font-mono text-slate-500">${data.timestamp}</td>
-                    <td class="p-2">${data.score.toFixed(4)}</td>
-                    <td class="p-2 font-bold">${data.verdict}${marker}</td>
+                    <td class="p-2 font-mono text-slate-500 text-[9px]">${data.timestamp}</td>
+                    <td class="p-2 font-mono text-[11px]">${data.score.toFixed(4)}</td>
+                    <td class="p-2 font-bold text-[11px]">${data.verdict}${marker}</td>
                 </tr>`;
                 document.getElementById('logBody').innerHTML = row + document.getElementById('logBody').innerHTML;
             } catch (e) { alert("Vault Connection Error."); }
@@ -85,29 +90,31 @@
 
         function downloadPDF() {
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            doc.setFontSize(14);
-            doc.text("Clinical Hybrinear Detailed Report", 20, 20);
-            doc.setFontSize(8);
-            doc.setFont("courier", "normal");
+            const pID = document.getElementById('patientID').value || "Unnamed_Patient";
+            doc.setFontSize(16); doc.text(`ICU Clinical Report: ${pID}`, 15, 20);
+            doc.setFontSize(9); doc.setFont("courier", "bold");
 
             sessionData.forEach((d, i) => {
-                const yPos = 40 + (i * 12);
+                const yPos = 40 + (i * 18);
                 const v = d.rawVitals;
-                // Full parameter set in PDF
-                doc.text(`${d.timestamp} | Score: ${d.score.toFixed(4)} | ${d.verdict}`, 20, yPos);
-                doc.text(`   Vitals: [${v[0]}/${v[1]}/${v[2]}/${v[3]}/${v[4]}/${v[5]}/${v[6]}/${v[7]}/${v[8]}/${v[9]}]`, 20, yPos + 4);
+                const color = d.verdict === "CRITICAL" ? [200, 0, 0] : [0, 0, 0];
+                doc.setTextColor(color[0], color[1], color[2]);
+                doc.text(`${d.timestamp} | Score: ${d.score.toFixed(4)} | Verdict: ${d.verdict}`, 15, yPos);
+                doc.setFont("courier", "normal");
+                doc.setTextColor(100, 100, 100);
+                // Print all 10 vitals in the PDF
+                doc.text(`   Vitals: ${v[0]}/${v[1]}/${v[2]}/${v[3]}/${v[4]}/${v[5]}/${v[6]}/${v[7]}/${v[8]}/${v[9]}`, 15, yPos + 6);
             });
-            doc.save("ICU_Detailed_Report.pdf");
+            doc.save(`Report_${pID}.pdf`);
         }
 
         function shareWhatsApp() {
             const phone = prompt("Enter number with country code:");
-            let msg = "*Detailed Clinical Report*%0A--------------------%0A";
+            const pID = document.getElementById('patientID').value || "Unknown";
+            let msg = `*Clinical Report: ${pID}*%0A--------------------%0A`;
             sessionData.forEach((d) => {
                 const v = d.rawVitals;
-                msg += `*Time:* ${d.timestamp}%0A`;
-                msg += `*Score:* ${d.score.toFixed(4)} (${d.verdict})%0A`;
-                msg += `*Params:* ${v[0]}/${v[1]}/${v[2]}/${v[3]}/${v[4]}/${v[5]}/${v[6]}/${v[7]}/${v[8]}/${v[9]}%0A%0A`;
+                msg += `*Time:* ${d.timestamp}%0A*Score:* ${d.score.toFixed(4)} (${d.verdict})%0A*Params:* ${v.join('/')}%0A%0A`;
             });
             window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
         }
