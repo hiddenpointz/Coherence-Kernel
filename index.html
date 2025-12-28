@@ -62,7 +62,9 @@
                     body: JSON.stringify({ vitals: vitals, gadgetTime: gadgetTime })
                 });
                 const data = await resp.json();
-                sessionData.push(data);
+                
+                // Save data + raw parameters for reporting
+                sessionData.push({ ...data, rawVitals: vitals });
 
                 const light = document.getElementById('status-light');
                 light.className = `w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center ${data.crossed ? 'trigger-red' : 'maintain-green'}`;
@@ -72,22 +74,41 @@
                 let marker = (data.crossed && !tippingPointReached) ? " <span class='text-red-500 font-black'>[TIPPING POINT]</span>" : "";
                 if (data.crossed) tippingPointReached = true;
 
-                const row = `<tr class="border-b border-slate-800 ${data.crossed ? 'bg-rose-900/20' : ''}"><td class="p-2 font-mono text-slate-500">${data.timestamp}</td><td class="p-2">${data.score.toFixed(4)}</td><td class="p-2 font-bold">${data.verdict}${marker}</td></tr>`;
+                const row = `<tr class="border-b border-slate-800 ${data.crossed ? 'bg-rose-900/20' : ''}">
+                    <td class="p-2 font-mono text-slate-500">${data.timestamp}</td>
+                    <td class="p-2">${data.score.toFixed(4)}</td>
+                    <td class="p-2 font-bold">${data.verdict}${marker}</td>
+                </tr>`;
                 document.getElementById('logBody').innerHTML = row + document.getElementById('logBody').innerHTML;
             } catch (e) { alert("Vault Connection Error."); }
         }
 
         function downloadPDF() {
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            doc.text("Clinical Hybrinear Report", 20, 20);
-            sessionData.forEach((d, i) => doc.text(`${d.timestamp} | Score: ${d.score} | ${d.verdict}`, 20, 40 + (i * 10)));
-            doc.save("ICU_Report.pdf");
+            doc.setFontSize(14);
+            doc.text("Clinical Hybrinear Detailed Report", 20, 20);
+            doc.setFontSize(8);
+            doc.setFont("courier", "normal");
+
+            sessionData.forEach((d, i) => {
+                const yPos = 40 + (i * 12);
+                const v = d.rawVitals;
+                // Full parameter set in PDF
+                doc.text(`${d.timestamp} | Score: ${d.score.toFixed(4)} | ${d.verdict}`, 20, yPos);
+                doc.text(`   Vitals: [${v[0]}/${v[1]}/${v[2]}/${v[3]}/${v[4]}/${v[5]}/${v[6]}/${v[7]}/${v[8]}/${v[9]}]`, 20, yPos + 4);
+            });
+            doc.save("ICU_Detailed_Report.pdf");
         }
 
         function shareWhatsApp() {
-            const phone = prompt("Enter number:");
-            let msg = "Hybrinear Report:%0A";
-            sessionData.forEach((d) => msg += `${d.timestamp}: ${d.score} - ${d.verdict}%0A`);
+            const phone = prompt("Enter number with country code:");
+            let msg = "*Detailed Clinical Report*%0A--------------------%0A";
+            sessionData.forEach((d) => {
+                const v = d.rawVitals;
+                msg += `*Time:* ${d.timestamp}%0A`;
+                msg += `*Score:* ${d.score.toFixed(4)} (${d.verdict})%0A`;
+                msg += `*Params:* ${v[0]}/${v[1]}/${v[2]}/${v[3]}/${v[4]}/${v[5]}/${v[6]}/${v[7]}/${v[8]}/${v[9]}%0A%0A`;
+            });
             window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
         }
 
