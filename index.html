@@ -1,45 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hybrinear Vault</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrinear Health Vault</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         .trigger-red { background: #ef4444; box-shadow: 0 0 25px #ef4444; }
         .drift-orange { background: #f59e0b; box-shadow: 0 0 25px #f59e0b; }
         .normal-green { background: #10b981; box-shadow: 0 0 25px #10b981; }
-        .m-input { width: 100%; background: #000; color: #fff; padding: 10px; border: 1px solid #334; font-size: 13px; border-radius: 6px; }
+        .m-input { width: 100%; background: #000; color: #fff; padding: 10px; border: 1px solid #334; font-size: 13px; font-family: monospace; border-radius: 6px; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 p-4">
+<body class="bg-slate-900 text-slate-100 p-4 font-sans">
     <div class="max-w-md mx-auto space-y-4">
-        <div id="status-light" class="w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center bg-slate-800">
-            <span id="v-lab" class="text-[10px] font-bold">IDLE</span>
+        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+            <label class="text-[10px] text-slate-500 uppercase font-bold">Patient / Bed ID</label>
+            <input type="text" id="patientID" class="m-input text-emerald-400" placeholder="e.g. BED-001">
+        </div>
+
+        <div id="status-light" class="w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center bg-slate-800 transition-all duration-700">
+            <span id="v-lab" class="text-[10px] font-bold uppercase">IDLE</span>
             <span id="o-val" class="text-lg font-mono">0.0000</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 bg-slate-800 p-5 rounded-2xl">
-            <input type="number" id="v0" placeholder="SYS (120)" class="m-input">
-            <input type="number" id="v1" placeholder="DIA (80)" class="m-input">
-            <input type="number" id="v2" placeholder="HR (72)" class="m-input">
+        <div class="grid grid-cols-2 gap-3 bg-slate-800 p-5 rounded-2xl shadow-2xl">
+            <input type="number" id="v0" placeholder="SYS BP (120)" class="m-input">
+            <input type="number" id="v1" placeholder="DIA BP (80)" class="m-input">
+            <input type="number" id="v2" placeholder="Pulse (72)" class="m-input">
             <input type="number" id="v3" placeholder="SpO2 (98)" class="m-input">
-            <input type="number" id="v4" placeholder="RR (16)" class="m-input">
-            <input type="number" id="v5" placeholder="TEMP (36.6)" class="m-input">
-            <input type="number" id="v6" placeholder="GLU (90)" class="m-input">
-            <input type="number" id="v7" placeholder="URINE (50)" class="m-input">
-            <input type="number" id="v8" placeholder="LAC (1.2)" class="m-input">
+            <input type="number" id="v4" placeholder="Resp (16)" class="m-input">
+            <input type="number" id="v5" placeholder="Temp (36.6)" class="m-input">
+            <input type="number" id="v6" placeholder="Glu (90)" class="m-input">
+            <input type="number" id="v7" placeholder="Urine (50)" class="m-input">
+            <input type="number" id="v8" placeholder="Lac (1.2)" class="m-input">
             <input type="number" id="v9" placeholder="WBC (7.5)" class="m-input">
-            <button onclick="process()" class="col-span-2 py-4 bg-indigo-600 rounded-xl font-bold uppercase">Process Trial</button>
+            <button onclick="process()" class="col-span-2 py-4 bg-indigo-600 rounded-xl font-black uppercase mt-2 shadow-lg hover:bg-indigo-500 transition-colors">Process Trial</button>
         </div>
 
         <div class="bg-black/40 rounded-2xl p-4 border border-slate-800">
-            <div class="flex justify-between mb-4 text-[10px] font-bold uppercase">
-                <button onclick="exportFull('pdf')" class="text-indigo-400">PDF Report</button>
-                <button onclick="exportFull('wa')" class="text-emerald-400">WhatsApp</button>
-                <button onclick="location.reload()" class="text-rose-500">Clear</button>
+            <div class="flex justify-between mb-4">
+                <button onclick="generatePDF()" class="text-indigo-400 font-bold text-xs uppercase">PDF Report</button>
+                <button onclick="sendWhatsApp()" class="text-emerald-400 font-bold text-xs uppercase">WhatsApp</button>
+                <button onclick="location.reload()" class="text-rose-500 font-bold text-xs uppercase">Clear All</button>
             </div>
-            <table class="w-full text-left text-[11px] font-mono"><tbody id="log"></tbody></table>
+            <table class="w-full text-left text-[11px] font-mono">
+                <tbody id="log"></tbody>
+            </table>
         </div>
     </div>
 
@@ -49,19 +57,24 @@
         const defaults = [120, 80, 72, 98, 16, 36.6, 90, 50, 1.2, 7.5];
 
         async function process() {
-            const vitals = Array.from({length:10}, (_,i) => {
+            const vitals = Array.from({length: 10}, (_, i) => {
                 const val = document.getElementById(`v${i}`).value;
                 return val === "" ? defaults[i] : parseFloat(val);
             });
 
             try {
-                // FIXED: Replace 'YOUR-APP' with your actual Vercel URL
-                const resp = await fetch('https://YOUR-APP.vercel.app/api', { 
-                    method:'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({vitals}) 
+                // IMPORTANT: CHANGE THE URL BELOW TO YOUR LIVE VERCEL URL
+                const response = await fetch('https://YOUR-VERCEL-APP-NAME.vercel.app/api', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vitals }) 
                 });
-                const data = await resp.json();
-                sessionData.push({...data, raw: vitals});
+                
+                if (!response.ok) throw new Error();
+                const data = await response.json();
+                
+                // Store BOTH the math results and the raw entries for reporting
+                sessionData.push({ ...data, raw: vitals });
                 
                 const light = document.getElementById('status-light');
                 if (data.score < 0.368) light.className = "w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center trigger-red";
@@ -70,22 +83,46 @@
 
                 document.getElementById('v-lab').innerText = data.verdict;
                 document.getElementById('o-val').innerText = data.score.toFixed(4);
-                document.getElementById('log').insertAdjacentHTML('afterbegin', `<tr class="border-b border-slate-800"><td class="py-2">${data.timestamp}</td><td>${data.score}</td><td class="text-right">${data.verdict}</td></tr>`);
-            } catch (e) { alert("Vault Connection Failure. Check URL in code."); }
+
+                const row = `<tr class="border-b border-slate-800"><td class="py-2">${data.timestamp}</td><td class="font-bold">${data.score.toFixed(4)}</td><td class="text-right uppercase">${data.verdict}</td></tr>`;
+                document.getElementById('log').insertAdjacentHTML('afterbegin', row);
+            } catch (e) { 
+                alert("Vault Connection Failure. Please check that your Vercel URL is correct in the code."); 
+            }
         }
 
-        function exportFull(type) {
-            const last = sessionData[sessionData.length-1];
-            if (!last) return;
-            let detail = sessionData.map(d => `${d.timestamp}|S:${d.score}|${d.raw.join(',')}`).join('\n');
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const id = document.getElementById('patientID').value || "Unknown-Patient";
             
-            if (type === 'pdf') {
-                const { jsPDF } = window.jspdf; const doc = new jsPDF();
-                doc.setFontSize(8); doc.text(detail, 10, 10); doc.save("Full_Report.pdf");
-            } else {
-                let msg = `*Latest Audit*%0A*Score:* ${last.score}%0A*Vitals:* ${last.raw.join(', ')}`;
-                window.open(`https://api.whatsapp.com/send?text=${msg}`);
-            }
+            doc.setFontSize(16); doc.text(`Clinical Math Audit: ${id}`, 10, 15);
+            doc.setFontSize(8); doc.setFont("courier", "bold");
+            
+            sessionData.forEach((entry, i) => {
+                const y = 30 + (i * 15);
+                const vitalStr = entry.raw.map((v, idx) => `${labels[idx]}:${v}`).join(' ');
+                doc.text(`${entry.timestamp} | SCORE: ${entry.score.toFixed(4)} | STATUS: ${entry.verdict}`, 10, y);
+                doc.setFont("courier", "normal");
+                doc.text(`> FULL ENTRY: ${vitalStr}`, 10, y + 5);
+                doc.setFont("courier", "bold");
+            });
+            doc.save(`Audit_${id}.pdf`);
+        }
+
+        function sendWhatsApp() {
+            const id = document.getElementById('patientID').value || "Patient";
+            const last = sessionData[sessionData.length - 1];
+            if (!last) return;
+            
+            let msg = `*Hybrinear Audit: ${id}*%0A`;
+            msg += `*Time:* ${last.timestamp}%0A`;
+            msg += `*Stability Score:* ${last.score.toFixed(4)}%0A`;
+            msg += `*Clinical Verdict:* ${last.verdict}%0A%0A`;
+            msg += `*Full Parameter Details:*%0A`;
+            last.raw.forEach((val, i) => { msg += `- ${labels[i]}: ${val}%0A`; });
+            
+            window.open(`https://api.whatsapp.com/send?text=${msg}`);
         }
     </script>
 </body>
