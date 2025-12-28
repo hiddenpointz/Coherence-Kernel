@@ -111,35 +111,38 @@
             doc.save(`Report_${pID}.pdf`);
         }
 
-        function whatsapp() {
-    // Access the global sessionData array
-    const last = sessionData[sessionData.length - 1]; 
-    if (!last) {
-        alert("No trial data found. Please Process Trial first.");
-        return;
-    }
+        function shareWhatsApp() {
+            // 1. Labels for the report
+            const reportLabels = ["SYS BP", "DIA BP", "PULSE", "SpO2", "RESP", "TEMP", "GLUCOSE", "URINE", "LACTATE", "WBC"];
+            
+            // 2. Access the latest entry
+            const last = sessionData[sessionData.length - 1];
+            if (!last) {
+                alert("No trial data found. Please Process Trial first.");
+                return;
+            }
 
-    const phone = prompt("Enter number (with country code, e.g., 9198...):");
-    if (!phone) return;
+            const phone = prompt("Enter number (with country code, e.g., 9198...):");
+            if (!phone) return;
 
-    // Build the detailed message header
-    let msg = `*HYBRINEAR CLINICAL AUDIT*%0A`;
-    msg += `*Stability Score:* ${last.score.toFixed(4)}%0A`;
-    msg += `*Status:* ${last.verdict}%0A`;
-    msg += `--------------------%0A`;
-    msg += `*FULL PARAMETERS:*%0A`;
+            // 3. Build the clinical header
+            let msg = `*HYBRINEAR CLINICAL AUDIT*%0A`;
+            msg += `*Stability Score:* ${last.score.toFixed(4)}%0A`;
+            msg += `*Status:* ${last.verdict}%0A`;
+            msg += `--------------------%0A`;
+            msg += `*FULL PARAMETERS:*%0A`;
 
-    // Loop through all 10 entered vitals to include them in the report
-    last.raw.forEach((val, i) => {
-        msg += `- ${labels[i]}: ${val}%0A`;
-    });
+            // 4. Loop through rawVitals (Must match what you saved in processTrial)
+            reportLabels.forEach((label, i) => {
+                msg += `- ${label}: ${last.rawVitals[i]}%0A`;
+            });
 
-    msg += `--------------------%0A`;
-    msg += `*Time:* ${last.timestamp}`;
+            msg += `--------------------%0A`;
+            msg += `*Time:* ${last.timestamp}`;
 
-    // Execute the WhatsApp link
-    window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
-}
+            // 5. Launch WhatsApp
+            window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
+        }
 
         function clearLogs() { if(confirm("Clear All Trial Data?")) location.reload(); }
     </script>
