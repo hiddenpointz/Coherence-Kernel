@@ -78,13 +78,14 @@
                 sessionData.push({ ...data, rawVitals: vitals });
 
                 const light = document.getElementById('status-light');
+                // Status light logic for the 0.368 threshold
                 light.className = `w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center ${data.score <= 0.368 ? 'trigger-red' : 'maintain-green'}`;
                 document.getElementById('verdict-label').innerText = data.verdict;
                 document.getElementById('omega-value').innerText = data.score.toFixed(4);
 
                 let marker = "";
                 if (trialCount % 10 === 0) marker = ` <span class="text-orange-400 font-bold">[CHECKPOINT ${trialCount}]</span>`;
-                if (data.score <= 0.368) marker += ` <span class="text-red-500 font-black">[TIPPING POINT REACHED]</span>`;
+                if (data.score <= 0.368) marker += ` <span class="text-red-500 font-black">[TIPPING POINT]</span>`;
 
                 const row = `<tr class="border-b border-slate-800 ${data.score <= 0.368 ? 'bg-rose-900/20' : ''}">
                     <td class="p-2 text-[9px] text-slate-500">${data.timestamp}</td>
@@ -105,7 +106,7 @@
                 doc.setTextColor(d.score <= 0.368 ? 200 : 0, 0, 0);
                 doc.text(`${d.timestamp} | ${d.score.toFixed(4)} | ${d.verdict}`, 15, y);
                 doc.setTextColor(100); doc.setFont("courier", "normal");
-                doc.text(`Params: ${d.rawVitals.join('/')}`, 15, y + 6);
+                doc.text(`Vitals: ${d.rawVitals.join('/')}`, 15, y + 6);
             });
             doc.save(`Report_${pID}.pdf`);
         }
