@@ -2,12 +2,13 @@
 let tippingPointReached = false;
 
 async function processHybrinearTrial() {
-    // 1. Capture 10 vitals and gadget time
+    // 1. Gather all 10 vitals from the matrix
     const vitals = Array.from({length: 10}, (_, i) => parseFloat(document.getElementById(`v${i}`).value || 0));
+    
+    // 2. Capture local gadget time
     const gadgetTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
 
     try {
-        // 2. Send to Vercel Vault
         const response = await fetch('https://coherence-vault.vercel.app/api', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -16,14 +17,14 @@ async function processHybrinearTrial() {
 
         const data = await response.json();
         
-        // 3. Point of No Return Logic
+        // 3. Mark the Point of No Return
         let marker = "";
         if (data.crossed && !tippingPointReached) {
             marker = " <span style='color:#ff4d4d; font-weight:bold;'>[TIPPING POINT]</span>";
             tippingPointReached = true;
         }
 
-        // 4. Update UI Components
+        // 4. Update the UI
         const logEntry = `
             <tr class="${data.crossed ? 'bg-red-900/20' : ''} border-b border-slate-700">
                 <td class="p-2 text-slate-400">${data.timestamp}</td>
@@ -35,8 +36,8 @@ async function processHybrinearTrial() {
         document.getElementById('mainVerdict').innerText = data.verdict;
         document.getElementById('mainScore').innerText = data.score.toFixed(4);
         
-    } catch (error) {
-        console.error("Vault Connection Error:", error);
+    } catch (e) {
+        console.error("Vault Connection Error:", e);
     }
 }
 </script>
