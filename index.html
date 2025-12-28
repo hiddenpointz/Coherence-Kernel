@@ -9,16 +9,12 @@
         .trigger-red { background: #ef4444; box-shadow: 0 0 25px #ef4444; }
         .drift-orange { background: #f59e0b; box-shadow: 0 0 25px #f59e0b; }
         .normal-green { background: #10b981; box-shadow: 0 0 25px #10b981; }
-        .m-input { width: 100%; background: #000; color: #fff; padding: 10px; border: 1px solid #334; font-size: 13px; font-family: monospace; border-radius: 6px; }
+        .m-input { width: 100%; background: #000; color: #fff; padding: 10px; border: 1px solid #334; font-size: 13px; border-radius: 6px; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 p-4">
     <div class="max-w-md mx-auto space-y-4">
-        <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-            <input type="text" id="patientID" class="m-input text-emerald-400" placeholder="PATIENT / BED ID">
-        </div>
-
-        <div id="status-light" class="w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center bg-slate-800 transition-all duration-700">
+        <div id="status-light" class="w-32 h-32 mx-auto rounded-full border-4 border-slate-950 flex flex-col justify-center items-center bg-slate-800">
             <span id="v-lab" class="text-[10px] font-bold">IDLE</span>
             <span id="o-val" class="text-lg font-mono">0.0000</span>
         </div>
@@ -38,10 +34,10 @@
         </div>
 
         <div class="bg-black/40 rounded-2xl p-4 border border-slate-800">
-            <div class="flex justify-between mb-4">
-                <button onclick="pdf()" class="text-indigo-400 text-xs font-bold">PDF REPORT</button>
-                <button onclick="whatsapp()" class="text-emerald-400 text-xs font-bold">WHATSAPP</button>
-                <button onclick="location.reload()" class="text-rose-500 text-xs font-bold">CLEAR</button>
+            <div class="flex justify-between mb-4 text-[10px] font-bold uppercase">
+                <button onclick="exportFull('pdf')" class="text-indigo-400">PDF Report</button>
+                <button onclick="exportFull('wa')" class="text-emerald-400">WhatsApp</button>
+                <button onclick="location.reload()" class="text-rose-500">Clear</button>
             </div>
             <table class="w-full text-left text-[11px] font-mono"><tbody id="log"></tbody></table>
         </div>
@@ -59,12 +55,12 @@
             });
 
             try {
-                const resp = await fetch('/api', { 
+                // FIXED: Replace 'YOUR-APP' with your actual Vercel URL
+                const resp = await fetch('https://YOUR-APP.vercel.app/api', { 
                     method:'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({vitals}) 
                 });
                 const data = await resp.json();
-                
                 sessionData.push({...data, raw: vitals});
                 
                 const light = document.getElementById('status-light');
@@ -74,33 +70,22 @@
 
                 document.getElementById('v-lab').innerText = data.verdict;
                 document.getElementById('o-val').innerText = data.score.toFixed(4);
-
-                const row = `<tr class="border-b border-slate-800"><td class="py-2">${data.timestamp}</td><td>${data.score.toFixed(4)}</td><td class="text-right">${data.verdict}</td></tr>`;
-                document.getElementById('log').insertAdjacentHTML('afterbegin', row);
-            } catch (e) { alert("Vault Connection Failure. Check Vercel URL."); }
+                document.getElementById('log').insertAdjacentHTML('afterbegin', `<tr class="border-b border-slate-800"><td class="py-2">${data.timestamp}</td><td>${data.score}</td><td class="text-right">${data.verdict}</td></tr>`);
+            } catch (e) { alert("Vault Connection Failure. Check URL in code."); }
         }
 
-        function pdf() {
-            const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            const pID = document.getElementById('patientID').value || "Bed-001";
-            doc.text(`Hybrinear Clinical Log: ${pID}`, 10, 10);
-            sessionData.forEach((d, i) => {
-                const y = 20 + (i * 12);
-                const vitalsText = d.raw.map((v, idx) => `${labels[idx]}:${v}`).join(' ');
-                doc.setFontSize(8);
-                doc.text(`${d.timestamp} | SCORE: ${d.score} | ${d.verdict}`, 10, y);
-                doc.text(`> ${vitalsText}`, 10, y + 5);
-            });
-            doc.save(`${pID}_Log.pdf`);
-        }
-
-        function whatsapp() {
-            const pID = document.getElementById('patientID').value || "Patient";
+        function exportFull(type) {
             const last = sessionData[sessionData.length-1];
             if (!last) return;
-            let msg = `*Hybrinear Report: ${pID}*%0A*Score:* ${last.score}%0A*Verdict:* ${last.verdict}%0A%0A*Vitals:*%0A`;
-            last.raw.forEach((v, i) => msg += `- ${labels[i]}: ${v}%0A`);
-            window.open(`https://api.whatsapp.com/send?text=${msg}`);
+            let detail = sessionData.map(d => `${d.timestamp}|S:${d.score}|${d.raw.join(',')}`).join('\n');
+            
+            if (type === 'pdf') {
+                const { jsPDF } = window.jspdf; const doc = new jsPDF();
+                doc.setFontSize(8); doc.text(detail, 10, 10); doc.save("Full_Report.pdf");
+            } else {
+                let msg = `*Latest Audit*%0A*Score:* ${last.score}%0A*Vitals:* ${last.raw.join(', ')}`;
+                window.open(`https://api.whatsapp.com/send?text=${msg}`);
+            }
         }
     </script>
 </body>
