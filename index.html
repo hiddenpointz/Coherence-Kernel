@@ -28,20 +28,20 @@
         </div>
 
         <div class="bg-slate-800/80 p-6 rounded-2xl border border-slate-700 shadow-2xl">
-            <h3 class="text-emerald-400 font-bold text-center mb-4 uppercase text-xs">Clinical Hybrinear Matrix</h3>
+            <h3 class="text-emerald-400 font-bold text-center mb-4 uppercase text-xs">Clinical Matrix</h3>
             <div class="grid grid-cols-2 gap-2 mb-4">
                 <div><label class="text-[8px] text-slate-500 uppercase">Sys BP</label><input type="number" id="v0" value="120" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">Dia BP</label><input type="number" id="v1" value="80" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">Pulse</label><input type="number" id="v2" value="72" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">SpO2 %</label><input type="number" id="v3" value="98" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">Resp</label><input type="number" id="v4" value="16" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">Temp °F</label><input type="number" id="v5" value="98.6" class="m-input"></div>
+                <div><label class="text-[8px] text-slate-500 uppercase">Temp °C</label><input type="number" id="v5" value="36.6" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">Sugar</label><input type="number" id="v6" value="100" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">Urine</label><input type="number" id="v7" value="1500" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">Lactate</label><input type="number" id="v8" value="1.2" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">WBC</label><input type="number" id="v9" value="7500" class="m-input"></div>
             </div>
-            <button onclick="processTrial()" class="w-full py-3 bg-indigo-600 rounded-lg font-black text-xs hover:bg-indigo-500 shadow-lg uppercase tracking-widest">Process Trial</button>
+            <button onclick="processTrial()" class="w-full py-3 bg-indigo-600 rounded-lg font-black text-xs hover:bg-indigo-500 uppercase tracking-widest">Process Trial</button>
         </div>
 
         <div class="bg-black/40 rounded-xl border border-slate-800 p-2">
@@ -61,56 +61,49 @@
         async function processTrial() {
             const vitals = Array.from({length: 10}, (_, i) => parseFloat(document.getElementById(`v${i}`).value));
             const gadgetTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
-
             try {
-                // FIXED: Using relative path for Vercel compatibility
                 const resp = await fetch('/api', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ vitals: vitals, gadgetTime: gadgetTime })
                 });
                 const data = await resp.json();
-                
                 sessionData.push({ ...data, rawVitals: vitals });
-
-                // UI Updates
                 const light = document.getElementById('status-light');
                 light.className = `w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center ${data.score < 0.368 ? 'trigger-red' : 'maintain-green'}`;
                 document.getElementById('verdict-label').innerText = data.verdict;
                 document.getElementById('omega-value').innerText = data.score.toFixed(4);
-
                 const row = `<tr class="border-b border-slate-800 ${data.score < 0.368 ? 'bg-rose-900/10' : ''}">
                     <td class="p-2 text-slate-500">${data.timestamp}</td>
                     <td class="p-2 font-mono">${data.score.toFixed(4)}</td>
                     <td class="p-2 font-bold">${data.verdict}</td>
                 </tr>`;
                 document.getElementById('logBody').insertAdjacentHTML('afterbegin', row);
-            } catch (e) { alert("Vault Connection Error. Check your Vercel deployment."); }
+            } catch (e) { alert("Vault Connection Error."); }
         }
 
         function downloadPDF() {
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            const pID = document.getElementById('patientID').value || "Patient_Unknown";
-            doc.setFontSize(14); doc.text(`Hybrinear Audit: ${pID}`, 15, 20);
-            doc.setFontSize(8); doc.setFont("courier", "normal");
+            const pID = document.getElementById('patientID').value || "Unknown";
+            doc.text(`Patient ID: ${pID} | Hybrinear Audit`, 15, 20);
             sessionData.forEach((d, i) => {
                 const y = 35 + (i * 15);
                 doc.text(`${d.timestamp} | Score: ${d.score.toFixed(4)} | Vitals: ${d.rawVitals.join('/')}`, 15, y);
             });
-            doc.save(`${pID}_Report.pdf`);
+            doc.save(`Audit_${pID}.pdf`);
         }
 
         function shareWhatsApp() {
             const last = sessionData[sessionData.length - 1];
-            if (!last) return alert("No data.");
-            const phone = prompt("Phone (with country code):");
-            if (!phone) return;
-            let msg = `*HYBRINEAR REPORT*%0A*Score:* ${last.score.toFixed(4)}%0A*Math Log:*%0A`;
+            if (!last) return alert("No trials.");
+            const pID = document.getElementById('patientID').value || "NoID";
+            const phone = prompt("Enter phone (with country code):");
+            let msg = `*REPORT [ID: ${pID}]*%0A*Score:* ${last.score.toFixed(4)}%0A*Vitals:*%0A`;
             labels.forEach((l, i) => msg += `${l}: ${last.rawVitals[i]}%0A`);
             window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
         }
 
-        function clearLogs() { if(confirm("Reset all?")) location.reload(); }
+        function clearLogs() { if(confirm("Clear data?")) location.reload(); }
     </script>
 </body>
 </html>
