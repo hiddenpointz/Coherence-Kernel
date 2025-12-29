@@ -35,113 +35,116 @@
                 <div><label class="text-[8px] text-slate-500 uppercase">Pulse Rate</label><input type="number" id="v2" value="72" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">SpO2 %</label><input type="number" id="v3" value="98" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">Resp Rate</label><input type="number" id="v4" value="16" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">Temp °C</label><input type="number" id="v5" value="36.6" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">Glucose</label><input type="number" id="v6" value="90" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">Urine Output</label><input type="number" id="v7" value="50" class="m-input"></div>
+                <div><label class="text-[8px] text-slate-500 uppercase">Temp °F</label><input type="number" id="v5" value="98.6" class="m-input"></div>
+                <div><label class="text-[8px] text-slate-500 uppercase">Glucose</label><input type="number" id="v6" value="100" class="m-input"></div>
+                <div><label class="text-[8px] text-slate-500 uppercase">Urine Output</label><input type="number" id="v7" value="1500" class="m-input"></div>
                 <div><label class="text-[8px] text-slate-500 uppercase">Lactate</label><input type="number" id="v8" value="1.2" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">WBC Count</label><input type="number" id="v9" value="7.5" class="m-input"></div>
+                <div><label class="text-[8px] text-slate-500 uppercase">WBC Count</label><input type="number" id="v9" value="7500" class="m-input"></div>
             </div>
             <button onclick="processTrial()" class="w-full py-3 bg-indigo-600 rounded-lg font-black text-xs hover:bg-indigo-500 shadow-lg uppercase">Process Hybrinear Trial</button>
         </div>
 
         <div class="bg-black/40 rounded-xl border border-slate-800 p-2">
-            <div class="flex justify-between mb-2">
-                <button onclick="downloadPDF()" class="text-[8px] text-indigo-400 font-black uppercase">PDF Report</button>
-                <button onclick="shareWhatsApp()" class="text-[8px] text-emerald-400 font-black uppercase">WhatsApp</button>
-                <button onclick="clearLogs()" class="text-[8px] text-rose-500 font-black uppercase">Clear</button>
+            <div class="flex justify-between mb-2 px-2">
+                <button onclick="downloadPDF()" class="text-[8px] text-indigo-400 font-black uppercase tracking-tighter">PDF Report</button>
+                <button onclick="shareWhatsApp()" class="text-[8px] text-emerald-400 font-black uppercase tracking-tighter">WhatsApp</button>
+                <button onclick="clearLogs()" class="text-[8px] text-rose-500 font-black uppercase tracking-tighter">Clear</button>
             </div>
-            <table class="w-full text-[10px] text-left border-collapse"><tbody id="logBody"></tbody></table>
+            <table class="w-full text-[10px] text-left border-collapse">
+                <tbody id="logBody"></tbody>
+            </table>
         </div>
     </div>
 
     <script>
         let sessionData = [];
-        let trialCount = 0;
+        const labels = ["SysBP", "DiaBP", "Pulse", "SpO2", "Resp", "Temp", "Glu", "Urine", "Lac", "WBC"];
 
         async function processTrial() {
-            const defaults = [120, 80, 72, 98, 16, 36.6, 90, 50, 1.2, 7.5];
-            const vitals = Array.from({length: 10}, (_, i) => {
-                const val = document.getElementById(`v${i}`).value;
-                return val === "" ? defaults[i] : parseFloat(val);
-            });
+            const vitals = Array.from({length: 10}, (_, i) => parseFloat(document.getElementById(`v${i}`).value));
             const gadgetTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
 
             try {
-                const resp = await fetch('https://coherence-vault.vercel.app/api', {
+                const resp = await fetch('/api', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ vitals: vitals, gadgetTime: gadgetTime })
                 });
                 const data = await resp.json();
-               
-                trialCount++;
+                
+                // Store vitals and score for reporting
                 sessionData.push({ ...data, rawVitals: vitals });
 
                 const light = document.getElementById('status-light');
-                // Status light logic for the 0.368 threshold
-                light.className = `w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center ${data.score <= 0.368 ? 'trigger-red' : 'maintain-green'}`;
+                const isEmergence = data.verdict.includes("EMERGENCE");
+                
+                // Update UI
+                light.className = `w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center ${data.score < 0.368 ? 'trigger-red' : 'maintain-green'}`;
                 document.getElementById('verdict-label').innerText = data.verdict;
                 document.getElementById('omega-value').innerText = data.score.toFixed(4);
 
-                let marker = "";
-                if (trialCount % 10 === 0) marker = ` <span class="text-orange-400 font-bold">[CHECKPOINT ${trialCount}]</span>`;
-                if (data.score <= 0.368) marker += ` <span class="text-red-500 font-black">[TIPPING POINT]</span>`;
+                let marker = isEmergence ? ` <span class="text-orange-400 font-bold">[PHASE SHIFT]</span>` : "";
 
-                const row = `<tr class="border-b border-slate-800 ${data.score <= 0.368 ? 'bg-rose-900/20' : ''}">
+                const row = `<tr class="border-b border-slate-800 ${data.score < 0.368 ? 'bg-rose-900/20' : ''}">
                     <td class="p-2 text-[9px] text-slate-500">${data.timestamp}</td>
                     <td class="p-2 font-mono text-[11px]">${data.score.toFixed(4)}</td>
                     <td class="p-2 font-bold text-[10px]">${data.verdict}${marker}</td>
                 </tr>`;
                 document.getElementById('logBody').insertAdjacentHTML('afterbegin', row);
-            } catch (e) { alert("Vault Connection Error."); }
+            } catch (e) { alert("Vault Connection Error. Check if Python server is running."); }
         }
 
         function downloadPDF() {
-            const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            const pID = document.getElementById('patientID').value || "Patient_Report";
-            doc.setFontSize(14); doc.text(`Patient ID: ${pID} | Hybrinear Audit`, 15, 20);
-            doc.setFontSize(9); doc.setFont("courier", "bold");
+            const { jsPDF } = window.jspdf; 
+            const doc = new jsPDF();
+            const pID = document.getElementById('patientID').value || "Unnamed_Patient";
+            
+            doc.setFontSize(16);
+            doc.text(`HYBRINEAR CLINICAL REPORT`, 15, 20);
+            doc.setFontSize(10);
+            doc.text(`Patient ID: ${pID} | Date: ${new Date().toLocaleDateString()}`, 15, 28);
+            
+            doc.setFont("courier", "bold");
             sessionData.forEach((d, i) => {
-                const y = 40 + (i * 18);
-                doc.setTextColor(d.score <= 0.368 ? 200 : 0, 0, 0);
-                doc.text(`${d.timestamp} | ${d.score.toFixed(4)} | ${d.verdict}`, 15, y);
-                doc.setTextColor(100); doc.setFont("courier", "normal");
-                doc.text(`Vitals: ${d.rawVitals.join('/')}`, 15, y + 6);
+                const y = 45 + (i * 22);
+                if (y > 270) doc.addPage();
+                
+                doc.setTextColor(d.score < 0.368 ? 200 : 0, 0, 0);
+                doc.text(`Trial ${i+1}: Score ${d.score.toFixed(4)} [${d.verdict}]`, 15, y);
+                
+                doc.setTextColor(80);
+                doc.setFont("courier", "normal");
+                doc.setFontSize(8);
+                const vitalLog = labels.map((l, idx) => `${l}:${d.rawVitals[idx]}`).join(' | ');
+                doc.text(vitalLog, 15, y + 6);
+                doc.text(`Time: ${d.timestamp}`, 15, y + 10);
             });
-            doc.save(`Report_${pID}.pdf`);
+            
+            doc.save(`Audit_${pID}.pdf`);
         }
 
-        function whatsapp() {
-    // Access the global sessionData array
-    const last = sessionData[sessionData.length - 1];
-    if (!last) {
-        alert("No trial data found. Please Process Trial first.");
-        return;
-    }
+        function shareWhatsApp() {
+            const last = sessionData[sessionData.length - 1];
+            const pID = document.getElementById('patientID').value || "No_ID";
+            if (!last) return alert("Process a trial first.");
 
-    const phone = prompt("Enter number (with country code, e.g., 9198...):");
-    if (!phone) return;
+            const phone = prompt("Enter WhatsApp number (with country code):");
+            if (!phone) return;
 
-    // Build the detailed message header
-    let msg = `*HYBRINEAR CLINICAL AUDIT*%0A`;
-    msg += `*Stability Score:* ${last.score.toFixed(4)}%0A`;
-    msg += `*Status:* ${last.verdict}%0A`;
-    msg += `--------------------%0A`;
-    msg += `*FULL PARAMETERS:*%0A`;
+            let msg = `*HYBRINEAR CLINICAL AUDIT [ID: ${pID}]*%0A`;
+            msg += `*Stability:* ${last.score.toFixed(4)} | *${last.verdict}*%0A`;
+            msg += `--------------------%0A`;
+            msg += `*MATH LOG (Vitals Entry):*%0A`;
+            labels.forEach((l, i) => msg += `- ${l}: ${last.rawVitals[i]}%0A`);
+            msg += `--------------------%0A`;
+            msg += `*Time:* ${last.timestamp}`;
 
-    // Loop through all 10 entered vitals to include them in the report
-    last.raw.forEach((val, i) => {
-        msg += `- ${labels[i]}: ${val}%0A`;
-    });
+            window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
+        }
 
-    msg += `--------------------%0A`;
-    msg += `*Time:* ${last.timestamp}`;
-
-    // Execute the WhatsApp link
-    window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
-}
-
-        function clearLogs() { if(confirm("Clear All Trial Data?")) location.reload(); }
+        function clearLogs() { 
+            if(confirm("Permanently clear patient data and trial history?")) location.reload(); 
+        }
     </script>
 </body>
 </html>
