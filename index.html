@@ -1,109 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICU Coherence Kernel | Secure Vault</title>
+    <meta charset="UTF-8"><title>ICU Coherence Kernel</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        .maintain-green { background-color: #10b981; box-shadow: 0 0 20px #10b981; }
-        .trigger-red { background-color: #ef4444; box-shadow: 0 0 20px #ef4444; }
-        .m-input { width: 100%; background: #000; color: #fff; padding: 6px; border-radius: 4px; border: 1px solid #334155; font-size: 11px; font-family: monospace; }
+        .vault-green { background: #10b981; box-shadow: 0 0 20px #10b981; }
+        .vault-red { background: #ef4444; box-shadow: 0 0 20px #ef4444; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 p-4 flex flex-col items-center">
-    <div class="max-w-md w-full space-y-4">
-        <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-2xl">
-            <label class="text-[8px] text-slate-500 uppercase font-bold">Patient / Bed ID</label>
-            <input type="text" id="patientID" placeholder="Enter ID..." class="m-input text-emerald-400">
-        </div>
-
-        <div class="bg-slate-800 p-6 rounded-3xl border border-slate-700 text-center shadow-2xl">
-            <div id="status-light" class="w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center bg-slate-950 transition-all duration-700">
-                <span id="verdict-label" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">IDLE</span>
-                <span id="omega-value" class="text-sm font-mono font-black text-white/50">0.0000</span>
+<body class="bg-slate-900 text-white p-5 font-mono">
+    <div class="max-w-md mx-auto space-y-4">
+        <div id="status-light" class="w-20 h-20 mx-auto rounded-full bg-slate-800 transition-all duration-500 flex items-center justify-center text-[10px] font-black">IDLE</div>
+        <div class="grid grid-cols-2 gap-2">
+            <input type="number" id="v0" placeholder="SysBP" class="bg-black p-2 rounded border border-slate-700">
+            <input type="number" id="v1" placeholder="DiaBP" class="bg-black p-2 rounded border border-slate-700">
             </div>
-            <p class="mt-3 text-[9px] font-black text-indigo-400 uppercase tracking-widest">Hybrinear Clinical Vault</p>
-        </div>
-
-        <div class="bg-slate-800/80 p-6 rounded-2xl border border-slate-700 shadow-2xl">
-            <h3 class="text-emerald-400 font-bold text-center mb-4 uppercase text-xs">Clinical Matrix</h3>
-            <div class="grid grid-cols-2 gap-2 mb-4">
-                <div><label class="text-[8px] text-slate-500 uppercase">Sys BP</label><input type="number" id="v0" value="120" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">Dia BP</label><input type="number" id="v1" value="80" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">Pulse</label><input type="number" id="v2" value="72" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">SpO2 %</label><input type="number" id="v3" value="98" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">Resp</label><input type="number" id="v4" value="16" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">Temp °C</label><input type="number" id="v5" value="36.6" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">Sugar</label><input type="number" id="v6" value="100" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">Urine</label><input type="number" id="v7" value="1500" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">Lactate</label><input type="number" id="v8" value="1.2" class="m-input"></div>
-                <div><label class="text-[8px] text-slate-500 uppercase">WBC</label><input type="number" id="v9" value="7500" class="m-input"></div>
-            </div>
-            <button onclick="processTrial()" class="w-full py-3 bg-indigo-600 rounded-lg font-black text-xs hover:bg-indigo-500 uppercase tracking-widest">Process Trial</button>
-        </div>
-
-        <div class="bg-black/40 rounded-xl border border-slate-800 p-2">
-            <div class="flex justify-between mb-2 px-2">
-                <button onclick="downloadPDF()" class="text-[9px] text-indigo-400 font-bold uppercase">PDF Report</button>
-                <button onclick="shareWhatsApp()" class="text-[9px] text-emerald-400 font-bold uppercase">WhatsApp</button>
-                <button onclick="clearLogs()" class="text-[9px] text-rose-500 font-bold uppercase">Clear</button>
-            </div>
-            <table class="w-full text-[10px] text-left border-collapse"><tbody id="logBody"></tbody></table>
-        </div>
+        <button onclick="runTrial()" class="w-full bg-indigo-600 py-3 rounded font-bold">PROCESS TRIAL</button>
+        <div id="logs" class="text-[10px] bg-black p-3 rounded h-40 overflow-y-auto mt-4"></div>
     </div>
 
     <script>
-        let sessionData = [];
-        const labels = ["SysBP", "DiaBP", "Pulse", "SpO2", "Resp", "Temp", "Sugar", "Urine", "Lactate", "WBC"];
-
-        async function processTrial() {
-            const vitals = Array.from({length: 10}, (_, i) => parseFloat(document.getElementById(`v${i}`).value));
-            const gadgetTime = new Date().toLocaleTimeString('en-GB', { hour12: false });
+        async function runTrial() {
+            const v = [
+                parseFloat(document.getElementById('v0').value) || 120,
+                parseFloat(document.getElementById('v1').value) || 80,
+                72, 98, 16, 36.6, 100, 1500, 1.2, 7500
+            ];
             try {
-                const resp = await fetch('/api', {
+                const r = await fetch('/api', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ vitals: vitals, gadgetTime: gadgetTime })
+                    body: JSON.stringify({ vitals: v, gadgetTime: new Date().toLocaleTimeString() })
                 });
-                const data = await resp.json();
-                sessionData.push({ ...data, rawVitals: vitals });
-                const light = document.getElementById('status-light');
-                light.className = `w-24 h-24 mx-auto rounded-full border-4 border-slate-900 flex flex-col justify-center items-center ${data.score < 0.368 ? 'trigger-red' : 'maintain-green'}`;
-                document.getElementById('verdict-label').innerText = data.verdict;
-                document.getElementById('omega-value').innerText = data.score.toFixed(4);
-                const row = `<tr class="border-b border-slate-800 ${data.score < 0.368 ? 'bg-rose-900/10' : ''}">
-                    <td class="p-2 text-slate-500">${data.timestamp}</td>
-                    <td class="p-2 font-mono">${data.score.toFixed(4)}</td>
-                    <td class="p-2 font-bold">${data.verdict}</td>
-                </tr>`;
-                document.getElementById('logBody').insertAdjacentHTML('afterbegin', row);
-            } catch (e) { alert("Vault Connection Error."); }
+                const d = await r.json();
+                document.getElementById('status-light').innerText = d.score;
+                document.getElementById('status-light').className = `w-20 h-20 mx-auto rounded-full flex items-center justify-center text-[10px] font-black ${d.score < 0.368 ? 'vault-red' : 'vault-green'}`;
+                document.getElementById('logs').innerHTML += `<div>${d.timestamp}: ${d.verdict} (${d.score})</div>`;
+            } catch (e) { alert("Vault Connection Error"); }
         }
-
-        function downloadPDF() {
-            const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            const pID = document.getElementById('patientID').value || "Unknown";
-            doc.text(`Patient ID: ${pID} | Hybrinear Audit`, 15, 20);
-            sessionData.forEach((d, i) => {
-                const y = 35 + (i * 15);
-                doc.text(`${d.timestamp} | Score: ${d.score.toFixed(4)} | Vitals: ${d.rawVitals.join('/')}`, 15, y);
-            });
-            doc.save(`Audit_${pID}.pdf`);
-        }
-
-        function shareWhatsApp() {
-            const last = sessionData[sessionData.length - 1];
-            if (!last) return alert("No trials.");
-            const pID = document.getElementById('patientID').value || "NoID";
-            const phone = prompt("Enter phone (with country code):");
-            let msg = `*REPORT [ID: ${pID}]*%0A*Score:* ${last.score.toFixed(4)}%0A*Vitals:*%0A`;
-            labels.forEach((l, i) => msg += `${l}: ${last.rawVitals[i]}%0A`);
-            window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${msg}`);
-        }
-
-        function clearLogs() { if(confirm("Clear data?")) location.reload(); }
     </script>
 </body>
 </html>
