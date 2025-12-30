@@ -195,11 +195,40 @@
             justify-content: space-between;
             margin-bottom: 10px;
             font-weight: 600;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         
         .log-data {
             font-size: 0.9em;
             color: #666;
+            line-height: 1.8;
+        }
+        
+        .vitals-table {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .vital-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px;
+        }
+        
+        .vital-label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .vital-value {
+            color: #667eea;
+            font-weight: 500;
         }
         
         .tipping-point {
@@ -210,7 +239,6 @@
         .export-buttons {
             display: flex;
             gap: 10px;
-            margin-top: 20px;
         }
         
         @media (max-width: 768px) {
@@ -220,6 +248,15 @@
             
             .penalties-grid {
                 grid-template-columns: 1fr;
+            }
+            
+            .vitals-table {
+                grid-template-columns: 1fr;
+            }
+            
+            .log-header {
+                flex-direction: column;
+                gap: 5px;
             }
         }
     </style>
@@ -302,8 +339,8 @@
                 </div>
                 
                 <div class="button-group">
-                    <button class="btn-primary" onclick="calculate()">Calculate</button>
-                    <button class="btn-secondary" onclick="reset()">Reset</button>
+                    <button class="btn-primary" onclick="calculateVitals()">Calculate</button>
+                    <button class="btn-secondary" onclick="resetForm()">Reset</button>
                 </div>
             </div>
             
@@ -321,7 +358,7 @@
             </div>
             
             <div class="log-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                     <h2>Trial Log</h2>
                     <div class="export-buttons">
                         <button class="btn-primary" onclick="exportPDF()">📄 Export PDF</button>
@@ -361,79 +398,65 @@
         let trials = [];
         let trialCount = 0;
         
-        // Obfuscated calculation function
-        function calcDeviation(low, high, value) {
-            const v = parseFloat(value);
-            if (v >= low && v <= high) return 1.0;
-            const d = Math.min(Math.abs(v - low), Math.abs(v - high));
-            return 1.0 / (1.0 + (d * 0.1));
-        }
-        
-        function calculate() {
-            const patientId = document.getElementById('patientId').value || 'Unknown';
+        async function calculateVitals() {
+            const patientId = document.getElementById('patientId').value.trim() || 'Unknown';
+            
+            // Get all parameter values
+            const getInputValue = (id) => {
+                const element = document.getElementById(id);
+                const value = element.value.trim();
+                return value !== '' ? parseFloat(value) : null;
+            };
             
             const parameters = {
-                temp: parseFloat(document.getElementById('temp').value) || 97.5,
-                systolic: parseFloat(document.getElementById('systolic').value) || 105,
-                diastolic: parseFloat(document.getElementById('diastolic').value) || 70,
-                pulse: parseFloat(document.getElementById('pulse').value) || 75,
-                respiratory: parseFloat(document.getElementById('respiratory').value) || 16,
-                sugar: parseFloat(document.getElementById('sugar').value) || 105,
-                lactate: parseFloat(document.getElementById('lactate').value) || 1.25,
-                spo2: parseFloat(document.getElementById('spo2').value) || 97,
-                urine: parseFloat(document.getElementById('urine').value) || 1400,
-                wbc: parseFloat(document.getElementById('wbc').value) || 7750
+                temp: getInputValue('temp'),
+                systolic: getInputValue('systolic'),
+                diastolic: getInputValue('diastolic'),
+                pulse: getInputValue('pulse'),
+                respiratory: getInputValue('respiratory'),
+                sugar: getInputValue('sugar'),
+                lactate: getInputValue('lactate'),
+                spo2: getInputValue('spo2'),
+                urine: getInputValue('urine'),
+                wbc: getInputValue('wbc')
             };
             
-            const ranges = {
-                temp: [96.4, 98.6],
-                systolic: [90, 120],
-                diastolic: [60, 80],
-                pulse: [60, 90],
-                respiratory: [12, 20],
-                sugar: [70, 140],
-                lactate: [0.5, 2.0],
-                spo2: [95, 100],
-                urine: [800, 2000],
-                wbc: [4500, 11000]
-            };
-            
-            const penalties = {};
-            let combined = 1.0;
-            
-            for (const [key, [low, high]] of Object.entries(ranges)) {
-                const penalty = calcDeviation(low, high, parameters[key]);
-                penalties[key] = Math.round(penalty * 10000) / 10000;
-                combined *= penalty;
+            // Validate all parameters are entered
+            const missingParams = [];
+            for (const [key, value] of Object.entries(parameters)) {
+                if (value === null || isNaN(value)) {
+                    missingParams.push(key);
+                }
             }
             
-            combined = Math.round(combined * 1000000) / 1000000;
-            
-            let status, color;
-            if (combined >= 0.9) {
-                status = 'Normal';
-                color = '#22c55e';
-            } else if (combined >= 0.7) {
-                status = 'Maintain';
-                color = '#3b82f6';
-            } else if (combined >= 0.368) {
-                status = 'Alert';
-                color = '#f59e0b';
-            } else {
-                status = 'Critical';
-                color = '#ef4444';
+            if (missingParams.length > 0) {
+                alert('Please enter all 10 vital parameters before calculating.\nMissing: ' + missingParams.join(', '));
+                return;
             }
             
-            const result = {
-                penalties,
-                combined,
-                status,
-                color,
-                threshold: 0.368
-            };
-            
-            displayResults(result);
-            logTrial(patientId, parameters, result);
+            try {
+                const response = await fetch('/api/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ parameters })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Calculation failed');
+                }
+                
+                const result = await response.json();
+                
+                displayResults(result);
+                logTrial(patientId, parameters, result);
+                
+            } catch (error) {
+                console.error('Calculation error:', error);
+                alert('Error calculating vitals: ' + error.message);
+            }
         }
         
         function displayResults(result) {
@@ -443,7 +466,7 @@
                 <div style="color: ${result.color};" class="status-value">${result.combined}</div>
                 <div class="status-label" style="color: ${result.color};">${result.status}</div>
                 <div style="margin-top: 15px; color: #666;">
-                    Universal Threshold: ${result.threshold}
+                    Total Penalty Points: ${result.combined}
                 </div>
             `;
             
@@ -466,7 +489,8 @@
             for (const [key, value] of Object.entries(result.penalties)) {
                 const div = document.createElement('div');
                 div.className = 'penalty-item';
-                div.innerHTML = `<strong>${labels[key]}</strong><span>${value}</span>`;
+                const displayValue = value === 0 ? '✓ Normal' : value.toFixed(2) + ' penalty';
+                div.innerHTML = `<strong>${labels[key]}</strong><span>${displayValue}</span>`;
                 grid.appendChild(div);
             }
             
@@ -477,7 +501,7 @@
             trialCount++;
             const timestamp = new Date().toLocaleString();
             
-            const isTippingPoint = trialCount % 10 === 0 && result.combined <= 0.368;
+            const isTippingPoint = trialCount % 10 === 0 && result.combined > 10;
             
             trials.push({
                 number: trialCount,
@@ -494,72 +518,211 @@
             
             entry.innerHTML = `
                 <div class="log-header">
-                    <span>Trial #${trialCount} - Patient: ${patientId}</span>
+                    <span><strong>Trial #${trialCount}</strong> - Patient: ${patientId}</span>
                     <span>${timestamp}</span>
                 </div>
                 <div class="log-data">
-                    Combined Score: <strong style="color: ${result.color};">${result.combined}</strong> - 
-                    Status: <strong style="color: ${result.color};">${result.status}</strong>
-                    ${isTippingPoint ? '<br><strong style="color: #ff6b6b;">⚠️ TIPPING POINT CROSSED</strong>' : ''}
+                    <div class="vitals-table">
+                        <div class="vital-row">
+                            <span class="vital-label">Temperature:</span>
+                            <span class="vital-value">${parameters.temp}°F</span>
+                        </div>
+                        <div class="vital-row">
+                            <span class="vital-label">Systolic BP:</span>
+                            <span class="vital-value">${parameters.systolic} mmHg</span>
+                        </div>
+                        <div class="vital-row">
+                            <span class="vital-label">Diastolic BP:</span>
+                            <span class="vital-value">${parameters.diastolic} mmHg</span>
+                        </div>
+                        <div class="vital-row">
+                            <span class="vital-label">Pulse Rate:</span>
+                            <span class="vital-value">${parameters.pulse} bpm</span>
+                        </div>
+                        <div class="vital-row">
+                            <span class="vital-label">Respiratory:</span>
+                            <span class="vital-value">${parameters.respiratory} /min</span>
+                        </div>
+                        <div class="vital-row">
+                            <span class="vital-label">Blood Sugar:</span>
+                            <span class="vital-value">${parameters.sugar} mg/dL</span>
+                        </div>
+                        <div class="vital-row">
+                            <span class="vital-label">Lactate:</span>
+                            <span class="vital-value">${parameters.lactate} mmol/L</span>
+                        </div>
+                        <div class="vital-row">
+                            <span class="vital-label">SpO2:</span>
+                            <span class="vital-value">${parameters.spo2}%</span>
+                        </div>
+                        <div class="vital-row">
+                            <span class="vital-label">Urine Output:</span>
+                            <span class="vital-value">${parameters.urine} mL/day</span>
+                        </div>
+                        <div class="vital-row">
+                            <span class="vital-label">WBC Count:</span>
+                            <span class="vital-value">${parameters.wbc} cells/μL</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 2px solid #e0e0e0;">
+                        <strong>Total Penalty:</strong> <span style="color: ${result.color}; font-weight: bold;">${result.combined}</span> - 
+                        <strong>Status:</strong> <span style="color: ${result.color}; font-weight: bold;">${result.status}</span>
+                        ${isTippingPoint ? '<br><strong style="color: #ff6b6b;">⚠️ TIPPING POINT CROSSED</strong>' : ''}
+                    </div>
                 </div>
             `;
             
             logDiv.insertBefore(entry, logDiv.firstChild);
         }
         
-        function reset() {
-            const inputs = ['temp', 'systolic', 'diastolic', 'pulse', 'respiratory', 'sugar', 'lactate', 'spo2', 'urine', 'wbc'];
-            inputs.forEach(id => document.getElementById(id).value = '');
+        function resetForm() {
+            // Clear all input fields
+            const inputIds = ['patientId', 'temp', 'systolic', 'diastolic', 'pulse', 'respiratory', 'sugar', 'lactate', 'spo2', 'urine', 'wbc'];
+            
+            inputIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.value = '';
+                }
+            });
+            
+            // Reset results display
+            const statusCard = document.getElementById('statusCard');
+            statusCard.style.borderColor = '#e0e0e0';
+            statusCard.innerHTML = '<div style="color: #999;">Awaiting calculation...</div>';
+            
+            document.getElementById('penaltiesSection').style.display = 'none';
+            document.getElementById('penaltiesGrid').innerHTML = '';
         }
         
         function exportPDF() {
+            if (trials.length === 0) {
+                alert('No trials to export. Please calculate at least one trial first.');
+                return;
+            }
+            
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            doc.setFontSize(20);
-            doc.text('Khalyx - Vitals Report', 105, 20, { align: 'center' });
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.text('Khalyx - Vitals Monitoring Report', 105, 15, { align: 'center' });
             
-            doc.setFontSize(12);
-            let y = 40;
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+            doc.text(`Total Trials: ${trials.length}`, 105, 27, { align: 'center' });
+            
+            let y = 35;
             
             trials.forEach((trial, idx) => {
-                if (y > 270) {
+                if (y > 250) {
                     doc.addPage();
                     y = 20;
                 }
                 
-                doc.text(`Trial #${trial.number} - ${trial.patientId}`, 20, y);
+                // Trial header
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text(`Trial #${trial.number} - Patient: ${trial.patientId}`, 15, y);
+                y += 6;
+                
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Timestamp: ${trial.timestamp}`, 15, y);
                 y += 7;
-                doc.setFontSize(10);
-                doc.text(`Time: ${trial.timestamp}`, 20, y);
-                y += 7;
-                doc.text(`Combined Score: ${trial.result.combined} - ${trial.result.status}`, 20, y);
-                y += 7;
+                
+                // All vital parameters
+                doc.setFont(undefined, 'bold');
+                doc.text('Vital Parameters:', 15, y);
+                y += 5;
+                doc.setFont(undefined, 'normal');
+                
+                doc.text(`Temperature: ${trial.parameters.temp}°F`, 20, y);
+                doc.text(`Systolic BP: ${trial.parameters.systolic} mmHg`, 110, y);
+                y += 4;
+                
+                doc.text(`Diastolic BP: ${trial.parameters.diastolic} mmHg`, 20, y);
+                doc.text(`Pulse Rate: ${trial.parameters.pulse} bpm`, 110, y);
+                y += 4;
+                
+                doc.text(`Respiratory Rate: ${trial.parameters.respiratory} /min`, 20, y);
+                doc.text(`Blood Sugar: ${trial.parameters.sugar} mg/dL`, 110, y);
+                y += 4;
+                
+                doc.text(`Lactate: ${trial.parameters.lactate} mmol/L`, 20, y);
+                doc.text(`SpO2: ${trial.parameters.spo2}%`, 110, y);
+                y += 4;
+                
+                doc.text(`Urine Output: ${trial.parameters.urine} mL/day`, 20, y);
+                doc.text(`WBC Count: ${trial.parameters.wbc} cells/μL`, 110, y);
+                y += 6;
+                
+                // Results
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(result.color === '#22c55e' ? 34 : result.color === '#3b82f6' ? 59 : result.color === '#f59e0b' ? 245 : 239, 
+                                 result.color === '#22c55e' ? 197 : result.color === '#3b82f6' ? 130 : result.color === '#f59e0b' ? 158 : 68, 
+                                 result.color === '#22c55e' ? 94 : result.color === '#3b82f6' ? 246 : result.color === '#f59e0b' ? 11 : 68);
+                doc.text(`Total Penalty: ${trial.result.combined} - Status: ${trial.result.status}`, 15, y);
+                doc.setTextColor(0, 0, 0);
+                y += 5;
                 
                 if (trial.isTippingPoint) {
                     doc.setTextColor(255, 0, 0);
-                    doc.text('TIPPING POINT CROSSED', 20, y);
+                    doc.text('⚠️ WARNING: TIPPING POINT CROSSED', 15, y);
                     doc.setTextColor(0, 0, 0);
-                    y += 7;
+                    y += 5;
                 }
                 
-                y += 5;
-                doc.setFontSize(12);
+                // Separator line
+                doc.setDrawColor(200, 200, 200);
+                doc.line(15, y, 195, y);
+                y += 7;
             });
             
-            doc.save('khalyx_report.pdf');
+            doc.save(`khalyx_vitals_report_${new Date().toISOString().split('T')[0]}.pdf`);
         }
         
         function exportWhatsApp() {
-            let message = '*Khalyx Vitals Report*\n\n';
+            if (trials.length === 0) {
+                alert('No trials to export. Please calculate at least one trial first.');
+                return;
+            }
+            
+            let message = '*🏥 KHALYX VITALS MONITORING REPORT*\n';
+            message += '═'.repeat(35) + '\n';
+            message += `Generated: ${new Date().toLocaleString()}\n`;
+            message += `Total Trials: ${trials.length}\n`;
+            message += '═'.repeat(35) + '\n\n';
             
             trials.forEach(trial => {
-                message += `*Trial #${trial.number}* - ${trial.patientId}\n`;
-                message += `Time: ${trial.timestamp}\n`;
-                message += `Score: ${trial.result.combined} - ${trial.result.status}\n`;
-                if (trial.isTippingPoint) message += '⚠️ TIPPING POINT\n';
-                message += '\n';
+                message += `*Trial #${trial.number}* - Patient: *${trial.patientId}*\n`;
+                message += `🕐 ${trial.timestamp}\n\n`;
+                
+                message += '*📊 VITAL PARAMETERS:*\n';
+                message += `🌡️ Temperature: ${trial.parameters.temp}°F\n`;
+                message += `💉 Blood Pressure: ${trial.parameters.systolic}/${trial.parameters.diastolic} mmHg\n`;
+                message += `❤️ Pulse Rate: ${trial.parameters.pulse} bpm\n`;
+                message += `🫁 Respiratory Rate: ${trial.parameters.respiratory} /min\n`;
+                message += `🍬 Blood Sugar: ${trial.parameters.sugar} mg/dL\n`;
+                message += `🧪 Lactate: ${trial.parameters.lactate} mmol/L\n`;
+                message += `💨 SpO2: ${trial.parameters.spo2}%\n`;
+                message += `💧 Urine Output: ${trial.parameters.urine} mL/day\n`;
+                message += `🔬 WBC Count: ${trial.parameters.wbc} cells/μL\n\n`;
+                
+                message += `*📈 ASSESSMENT:*\n`;
+                message += `Total Penalty: *${trial.result.combined}*\n`;
+                message += `Status: *${trial.result.status}*\n`;
+                
+                if (trial.isTippingPoint) {
+                    message += `\n⚠️ *CRITICAL: TIPPING POINT CROSSED*\n`;
+                }
+                
+                message += '\n' + '─'.repeat(35) + '\n\n';
             });
+            
+            message += '*Khalyx Vitals Monitoring System*\n';
+            message += `Report generated on ${new Date().toLocaleDateString()}`;
             
             const encoded = encodeURIComponent(message);
             window.open(`https://wa.me/?text=${encoded}`, '_blank');
