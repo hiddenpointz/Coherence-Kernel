@@ -1,17 +1,527 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Khalyx Vital Risk Assessment App</title>
-    <meta property="og:image" content="https://bolt.new/static/og_default.png" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://bolt.new/static/og_default.png" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khalyx - Vitals Monitoring System</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+        
+        .panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+        
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 0.85em;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .status-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 3px solid #e0e0e0;
+        }
+        
+        .status-value {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .status-label {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .penalties-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .penalty-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .penalty-item strong {
+            display: block;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .log-section {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+        
+        .log-entry {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .log-data {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .tipping-point {
+            background: #fff3cd;
+            border-left-color: #ffc107 !important;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            .penalties-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Khalyx</h1>
+            <p>Advanced Vitals Monitoring & Deviation Analysis System</p>
+        </div>
+        
+        <div class="content">
+            <div class="panel">
+                <h2>Patient Information</h2>
+                <div class="form-group">
+                    <label>Patient ID</label>
+                    <input type="text" id="patientId" placeholder="Enter patient ID">
+                </div>
+                
+                <h2 style="margin-top: 30px;">Vital Parameters</h2>
+                
+                <div class="form-group">
+                    <label>Body Temperature (°F)</label>
+                    <input type="number" id="temp" step="0.1" placeholder="96.4 - 98.6">
+                    <small>Normal: 96.4°F to 98.6°F</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Systolic Pressure (mmHg)</label>
+                    <input type="number" id="systolic" placeholder="90 - 120">
+                    <small>Normal: 90 - 120 mmHg</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Diastolic Pressure (mmHg)</label>
+                    <input type="number" id="diastolic" placeholder="60 - 80">
+                    <small>Normal: 60 - 80 mmHg</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Pulse Rate (bpm)</label>
+                    <input type="number" id="pulse" placeholder="60 - 90">
+                    <small>Normal: 60 - 90 bpm</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Respiratory Rate (breaths/min)</label>
+                    <input type="number" id="respiratory" placeholder="12 - 20">
+                    <small>Normal: 12 - 20 breaths/min</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Random Sugar (mg/dL)</label>
+                    <input type="number" id="sugar" placeholder="70 - 140">
+                    <small>Normal: 70 - 140 mg/dL</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Lactate (mmol/L)</label>
+                    <input type="number" id="lactate" step="0.1" placeholder="0.5 - 2.0">
+                    <small>Normal: 0.5 - 2.0 mmol/L</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>SpO2 (%)</label>
+                    <input type="number" id="spo2" placeholder="95 - 100">
+                    <small>Normal: 95% - 100%</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Urine Output (mL/day)</label>
+                    <input type="number" id="urine" placeholder="800 - 2000">
+                    <small>Normal: 800 - 2000 mL/day</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>WBC Count (cells/μL)</label>
+                    <input type="number" id="wbc" placeholder="4500 - 11000">
+                    <small>Normal: 4500 - 11000 cells/μL</small>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn-primary" onclick="calculate()">Calculate</button>
+                    <button class="btn-secondary" onclick="reset()">Reset</button>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>Results</h2>
+                
+                <div class="status-card" id="statusCard">
+                    <div style="color: #999;">Awaiting calculation...</div>
+                </div>
+                
+                <div id="penaltiesSection" style="display: none;">
+                    <h3 style="margin-bottom: 15px;">Individual Penalties</h3>
+                    <div class="penalties-grid" id="penaltiesGrid"></div>
+                </div>
+            </div>
+            
+            <div class="log-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Trial Log</h2>
+                    <div class="export-buttons">
+                        <button class="btn-primary" onclick="exportPDF()">📄 Export PDF</button>
+                        <button class="btn-primary" onclick="exportWhatsApp()">💬 WhatsApp</button>
+                    </div>
+                </div>
+                <div id="logEntries"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Anti-debugging and protection
+        (function() {
+            const devtools = { open: false };
+            const threshold = 160;
+            
+            setInterval(() => {
+                if (window.outerWidth - window.innerWidth > threshold || 
+                    window.outerHeight - window.innerHeight > threshold) {
+                    devtools.open = true;
+                    document.body.innerHTML = '<h1 style="text-align:center;margin-top:50px;">Access Denied</h1>';
+                }
+            }, 500);
+            
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.addEventListener('keydown', e => {
+                if (e.key === 'F12' || 
+                    (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                    (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+                    (e.ctrlKey && e.key === 'U')) {
+                    e.preventDefault();
+                }
+            });
+        })();
+        
+        let trials = [];
+        let trialCount = 0;
+        
+        async function calculate() {
+            const patientId = document.getElementById('patientId').value || 'Unknown';
+            
+            const parameters = {
+                temp: parseFloat(document.getElementById('temp').value) || 97.5,
+                systolic: parseFloat(document.getElementById('systolic').value) || 105,
+                diastolic: parseFloat(document.getElementById('diastolic').value) || 70,
+                pulse: parseFloat(document.getElementById('pulse').value) || 75,
+                respiratory: parseFloat(document.getElementById('respiratory').value) || 16,
+                sugar: parseFloat(document.getElementById('sugar').value) || 105,
+                lactate: parseFloat(document.getElementById('lactate').value) || 1.25,
+                spo2: parseFloat(document.getElementById('spo2').value) || 97,
+                urine: parseFloat(document.getElementById('urine').value) || 1400,
+                wbc: parseFloat(document.getElementById('wbc').value) || 7750
+            };
+            
+            try {
+                const response = await fetch('/api/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ parameters })
+                });
+                
+                const result = await response.json();
+                
+                displayResults(result);
+                logTrial(patientId, parameters, result);
+                
+            } catch (error) {
+                alert('Calculation error: ' + error.message);
+            }
+        }
+        
+        function displayResults(result) {
+            const card = document.getElementById('statusCard');
+            card.style.borderColor = result.color;
+            card.innerHTML = `
+                <div style="color: ${result.color};" class="status-value">${result.combined}</div>
+                <div class="status-label" style="color: ${result.color};">${result.status}</div>
+                <div style="margin-top: 15px; color: #666;">
+                    Universal Threshold: ${result.threshold}
+                </div>
+            `;
+            
+            const grid = document.getElementById('penaltiesGrid');
+            grid.innerHTML = '';
+            
+            const labels = {
+                temp: 'Temperature',
+                systolic: 'Systolic BP',
+                diastolic: 'Diastolic BP',
+                pulse: 'Pulse Rate',
+                respiratory: 'Respiratory',
+                sugar: 'Blood Sugar',
+                lactate: 'Lactate',
+                spo2: 'SpO2',
+                urine: 'Urine Output',
+                wbc: 'WBC Count'
+            };
+            
+            for (const [key, value] of Object.entries(result.penalties)) {
+                const div = document.createElement('div');
+                div.className = 'penalty-item';
+                div.innerHTML = `<strong>${labels[key]}</strong><span>${value}</span>`;
+                grid.appendChild(div);
+            }
+            
+            document.getElementById('penaltiesSection').style.display = 'block';
+        }
+        
+        function logTrial(patientId, parameters, result) {
+            trialCount++;
+            const timestamp = new Date().toLocaleString();
+            
+            const isTippingPoint = trialCount % 10 === 0 && result.combined <= 0.368;
+            
+            trials.push({
+                number: trialCount,
+                patientId,
+                timestamp,
+                parameters,
+                result,
+                isTippingPoint
+            });
+            
+            const logDiv = document.getElementById('logEntries');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry' + (isTippingPoint ? ' tipping-point' : '');
+            
+            entry.innerHTML = `
+                <div class="log-header">
+                    <span>Trial #${trialCount} - Patient: ${patientId}</span>
+                    <span>${timestamp}</span>
+                </div>
+                <div class="log-data">
+                    Combined Score: <strong style="color: ${result.color};">${result.combined}</strong> - 
+                    Status: <strong style="color: ${result.color};">${result.status}</strong>
+                    ${isTippingPoint ? '<br><strong style="color: #ff6b6b;">⚠️ TIPPING POINT CROSSED</strong>' : ''}
+                </div>
+            `;
+            
+            logDiv.insertBefore(entry, logDiv.firstChild);
+        }
+        
+        function reset() {
+            const inputs = ['temp', 'systolic', 'diastolic', 'pulse', 'respiratory', 'sugar', 'lactate', 'spo2', 'urine', 'wbc'];
+            inputs.forEach(id => document.getElementById(id).value = '');
+        }
+        
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(20);
+            doc.text('Khalyx - Vitals Report', 105, 20, { align: 'center' });
+            
+            doc.setFontSize(12);
+            let y = 40;
+            
+            trials.forEach((trial, idx) => {
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+                
+                doc.text(`Trial #${trial.number} - ${trial.patientId}`, 20, y);
+                y += 7;
+                doc.setFontSize(10);
+                doc.text(`Time: ${trial.timestamp}`, 20, y);
+                y += 7;
+                doc.text(`Combined Score: ${trial.result.combined} - ${trial.result.status}`, 20, y);
+                y += 7;
+                
+                if (trial.isTippingPoint) {
+                    doc.setTextColor(255, 0, 0);
+                    doc.text('TIPPING POINT CROSSED', 20, y);
+                    doc.setTextColor(0, 0, 0);
+                    y += 7;
+                }
+                
+                y += 5;
+                doc.setFontSize(12);
+            });
+            
+            doc.save('khalyx_report.pdf');
+        }
+        
+        function exportWhatsApp() {
+            let message = '*Khalyx Vitals Report*\n\n';
+            
+            trials.forEach(trial => {
+                message += `*Trial #${trial.number}* - ${trial.patientId}\n`;
+                message += `Time: ${trial.timestamp}\n`;
+                message += `Score: ${trial.result.combined} - ${trial.result.status}\n`;
+                if (trial.isTippingPoint) message += '⚠️ TIPPING POINT\n';
+                message += '\n';
+            });
+            
+            const encoded = encodeURIComponent(message);
+            window.open(`https://wa.me/?text=${encoded}`, '_blank');
+        }
+    </script>
+</body>
 </html>
