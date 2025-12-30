@@ -361,7 +361,15 @@
         let trials = [];
         let trialCount = 0;
         
-        async function calculate() {
+        // Obfuscated calculation function
+        function calcDeviation(low, high, value) {
+            const v = parseFloat(value);
+            if (v >= low && v <= high) return 1.0;
+            const d = Math.min(Math.abs(v - low), Math.abs(v - high));
+            return 1.0 / (1.0 + (d * 0.1));
+        }
+        
+        function calculate() {
             const patientId = document.getElementById('patientId').value || 'Unknown';
             
             const parameters = {
@@ -377,21 +385,55 @@
                 wbc: parseFloat(document.getElementById('wbc').value) || 7750
             };
             
-            try {
-                const response = await fetch('/api/calculate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ parameters })
-                });
-                
-                const result = await response.json();
-                
-                displayResults(result);
-                logTrial(patientId, parameters, result);
-                
-            } catch (error) {
-                alert('Calculation error: ' + error.message);
+            const ranges = {
+                temp: [96.4, 98.6],
+                systolic: [90, 120],
+                diastolic: [60, 80],
+                pulse: [60, 90],
+                respiratory: [12, 20],
+                sugar: [70, 140],
+                lactate: [0.5, 2.0],
+                spo2: [95, 100],
+                urine: [800, 2000],
+                wbc: [4500, 11000]
+            };
+            
+            const penalties = {};
+            let combined = 1.0;
+            
+            for (const [key, [low, high]] of Object.entries(ranges)) {
+                const penalty = calcDeviation(low, high, parameters[key]);
+                penalties[key] = Math.round(penalty * 10000) / 10000;
+                combined *= penalty;
             }
+            
+            combined = Math.round(combined * 1000000) / 1000000;
+            
+            let status, color;
+            if (combined >= 0.9) {
+                status = 'Normal';
+                color = '#22c55e';
+            } else if (combined >= 0.7) {
+                status = 'Maintain';
+                color = '#3b82f6';
+            } else if (combined >= 0.368) {
+                status = 'Alert';
+                color = '#f59e0b';
+            } else {
+                status = 'Critical';
+                color = '#ef4444';
+            }
+            
+            const result = {
+                penalties,
+                combined,
+                status,
+                color,
+                threshold: 0.368
+            };
+            
+            displayResults(result);
+            logTrial(patientId, parameters, result);
         }
         
         function displayResults(result) {
