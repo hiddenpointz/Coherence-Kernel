@@ -398,10 +398,17 @@
         let trials = [];
         let trialCount = 0;
         
+        // Calculation logic - runs in browser
+        function calculateDeviation(low, high, value) {
+            const v = parseFloat(value);
+            if (v >= low && v <= high) return 0.0;
+            const deviation = Math.min(Math.abs(v - low), Math.abs(v - high));
+            return deviation * 0.1;
+        }
+        
         async function calculateVitals() {
             const patientId = document.getElementById('patientId').value.trim() || 'Unknown';
             
-            // Get all parameter values
             const getInputValue = (id) => {
                 const element = document.getElementById(id);
                 const value = element.value.trim();
@@ -421,7 +428,6 @@
                 wbc: getInputValue('wbc')
             };
             
-            // Validate all parameters are entered
             const missingParams = [];
             for (const [key, value] of Object.entries(parameters)) {
                 if (value === null || isNaN(value)) {
@@ -435,27 +441,69 @@
             }
             
             try {
+                // Try to call API first
                 const response = await fetch('/api/calculate', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ parameters })
                 });
                 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Calculation failed');
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('API not available, using local calculation');
                 }
                 
                 const result = await response.json();
-                
                 displayResults(result);
                 logTrial(patientId, parameters, result);
                 
             } catch (error) {
-                console.error('Calculation error:', error);
-                alert('Error calculating vitals: ' + error.message);
+                // Fallback to local calculation
+                console.log('Using local calculation:', error.message);
+                
+                const ranges = {
+                    temp: [96.4, 98.6],
+                    systolic: [90, 120],
+                    diastolic: [60, 80],
+                    pulse: [60, 90],
+                    respiratory: [12, 20],
+                    sugar: [70, 140],
+                    lactate: [0.5, 2.0],
+                    spo2: [95, 100],
+                    urine: [800, 2000],
+                    wbc: [4500, 11000]
+                };
+                
+                const penalties = {};
+                let totalPenalty = 0;
+                
+                for (const [key, [low, high]] of Object.entries(ranges)) {
+                    const penalty = calculateDeviation(low, high, parameters[key]);
+                    penalties[key] = Math.round(penalty * 100) / 100;
+                    totalPenalty += penalty;
+                }
+                
+                const combined = Math.round(totalPenalty * 1000) / 1000;
+                
+                let status, color;
+                if (combined === 0) {
+                    status = 'Normal';
+                    color = '#22c55e';
+                } else if (combined < 3) {
+                    status = 'Maintain';
+                    color = '#3b82f6';
+                } else if (combined < 10) {
+                    status = 'Alert';
+                    color = '#f59e0b';
+                } else {
+                    status = 'Critical';
+                    color = '#ef4444';
+                }
+                
+                const result = { penalties, combined, status, color, threshold: 0.368 };
+                displayResults(result);
+                logTrial(patientId, parameters, result);
             }
         }
         
@@ -576,17 +624,13 @@
         }
         
         function resetForm() {
-            // Clear all input fields
             const inputIds = ['patientId', 'temp', 'systolic', 'diastolic', 'pulse', 'respiratory', 'sugar', 'lactate', 'spo2', 'urine', 'wbc'];
             
             inputIds.forEach(id => {
                 const element = document.getElementById(id);
-                if (element) {
-                    element.value = '';
-                }
+                if (element) element.value = '';
             });
             
-            // Reset results display
             const statusCard = document.getElementById('statusCard');
             statusCard.style.borderColor = '#e0e0e0';
             statusCard.innerHTML = '<div style="color: #999;">Awaiting calculation...</div>';
@@ -615,13 +659,12 @@
             
             let y = 35;
             
-            trials.forEach((trial, idx) => {
+            trials.forEach((trial) => {
                 if (y > 250) {
                     doc.addPage();
                     y = 20;
                 }
                 
-                // Trial header
                 doc.setFontSize(12);
                 doc.setFont(undefined, 'bold');
                 doc.text(`Trial #${trial.number} - Patient: ${trial.patientId}`, 15, y);
@@ -632,7 +675,6 @@
                 doc.text(`Timestamp: ${trial.timestamp}`, 15, y);
                 y += 7;
                 
-                // All vital parameters
                 doc.setFont(undefined, 'bold');
                 doc.text('Vital Parameters:', 15, y);
                 y += 5;
@@ -658,13 +700,8 @@
                 doc.text(`WBC Count: ${trial.parameters.wbc} cells/μL`, 110, y);
                 y += 6;
                 
-                // Results
                 doc.setFont(undefined, 'bold');
-                doc.setTextColor(result.color === '#22c55e' ? 34 : result.color === '#3b82f6' ? 59 : result.color === '#f59e0b' ? 245 : 239, 
-                                 result.color === '#22c55e' ? 197 : result.color === '#3b82f6' ? 130 : result.color === '#f59e0b' ? 158 : 68, 
-                                 result.color === '#22c55e' ? 94 : result.color === '#3b82f6' ? 246 : result.color === '#f59e0b' ? 11 : 68);
                 doc.text(`Total Penalty: ${trial.result.combined} - Status: ${trial.result.status}`, 15, y);
-                doc.setTextColor(0, 0, 0);
                 y += 5;
                 
                 if (trial.isTippingPoint) {
@@ -674,7 +711,6 @@
                     y += 5;
                 }
                 
-                // Separator line
                 doc.setDrawColor(200, 200, 200);
                 doc.line(15, y, 195, y);
                 y += 7;
